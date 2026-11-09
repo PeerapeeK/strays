@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}จัดการสุนัข{% endblock %}
 
@@ -27,7 +28,7 @@
     </div>
 </form>
 
-<div class="table-responsive">
+<div class="table-responsive" style="overflow-x:auto;">
     <table class="table table-striped align-middle bg-white">
         <thead>
             <tr>
@@ -49,7 +50,7 @@
                     <td>{{ dog.get_sex_display }}</td>
                     <td>{{ dog.get_size_display }}</td>
                     <td>{{ dog.age_months }}</td>
-                    <td><span class="badge bg-secondary">{{ dog.get_status_display }}</span></td>
+                    <td><span class="status-pill {{ dog.status|status_class }}">{{ dog.get_status_display }}</span></td>
                     <td>{{ dog.intake_date }}</td>
                     <td class="text-end">
                         <a class="btn btn-sm btn-outline-primary" href="{% url 'dog_detail' dog.pk %}">ดูข้อมูล</a>

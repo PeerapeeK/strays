@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}รายละเอียดการนัดสัมภาษณ์{% endblock %}
 
@@ -15,7 +16,7 @@
                 <p class="text-muted mb-1">รหัสการนัดหมาย</p>
                 <p class="fs-4 fw-bold mb-0">{{ interview.code }}</p>
             </div>
-            <span class="badge bg-secondary fs-6">{{ interview.get_status_display }}</span>
+            <span class="status-pill {{ interview.status|status_class }} fs-6">{{ interview.get_status_display }}</span>
         </div>
         <dl class="row mb-0">
             <dt class="col-sm-3">สุนัข</dt>
@@ -85,7 +86,7 @@
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <h2 class="h5 mb-3">ผลการสัมภาษณ์</h2>
-            <p class="mb-1">ผล: <strong>{{ interview.result.get_outcome_display }}</strong></p>
+            <p class="mb-1">ผล: <span class="status-pill {{ interview.result.outcome|status_class }}">{{ interview.result.get_outcome_display }}</span></p>
             <p class="mb-3">{{ interview.result.notes|linebreaksbr }}</p>
             <div class="row g-3">
                 {% for photo in interview.result.photos.all %}

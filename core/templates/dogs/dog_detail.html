@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}ข้อมูลสุนัข {{ dog.name }}{% endblock %}
 
@@ -38,7 +39,7 @@
             <dt class="col-sm-4">ทำหมัน</dt>
             <dd class="col-sm-8">{% if dog.sterilized %}ทำแล้ว{% else %}ยังไม่ได้ทำ{% endif %}</dd>
             <dt class="col-sm-4">สถานะ</dt>
-            <dd class="col-sm-8"><span class="badge bg-secondary">{{ dog.get_status_display }}</span></dd>
+            <dd class="col-sm-8"><span class="status-pill {{ dog.status|status_class }}">{{ dog.get_status_display }}</span></dd>
             <dt class="col-sm-4">วันที่รับเข้า</dt>
             <dd class="col-sm-8">{{ dog.intake_date }}</dd>
             <dt class="col-sm-4">รายละเอียด</dt>
@@ -80,7 +81,7 @@
                         <div class="mb-3">
                             <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
-                            {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+                            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                         </div>
                     {% endfor %}
                     <button type="submit" class="btn btn-primary">เพิ่มบันทึก</button>

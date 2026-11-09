@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}การนัดสัมภาษณ์ของฉัน{% endblock %}
 
@@ -9,7 +10,7 @@
 </div>
 
 {% if interviews %}
-    <div class="table-responsive">
+    <div class="table-responsive" style="overflow-x:auto;">
         <table class="table table-striped align-middle bg-white">
             <thead>
                 <tr>
@@ -26,7 +27,7 @@
                         <td>{{ interview.code }}</td>
                         <td>{{ interview.dog.name }}</td>
                         <td>{{ interview.scheduled_at|date:'d/m/Y H:i' }}</td>
-                        <td><span class="badge bg-secondary">{{ interview.get_status_display }}</span></td>
+                        <td><span class="status-pill {{ interview.status|status_class }}">{{ interview.get_status_display }}</span></td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-outline-primary" href="{% url 'interview_detail' interview.pk %}">ดูรายละเอียด</a>
                         </td>

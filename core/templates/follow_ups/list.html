@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}การติดตามผลของฉัน{% endblock %}
 
@@ -9,7 +10,7 @@
 </div>
 
 {% if follow_ups %}
-    <div class="table-responsive">
+    <div class="table-responsive" style="overflow-x:auto;">
         <table class="table table-striped align-middle bg-white">
             <thead>
                 <tr>
@@ -28,7 +29,7 @@
                         <td>{{ follow_up.contract.interview_request.dog.name }}</td>
                         <td>{{ follow_up.day_offset }} วัน</td>
                         <td>{{ follow_up.due_date|date:'d/m/Y' }}</td>
-                        <td><span class="badge bg-secondary">{{ follow_up.get_status_display }}</span></td>
+                        <td><span class="status-pill {{ follow_up.status|status_class }}">{{ follow_up.get_status_display }}</span></td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-outline-primary" href="{% url 'followup_detail' follow_up.pk %}">ดูรายละเอียด</a>
                         </td>

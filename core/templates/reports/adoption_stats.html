@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}รายงานการรับอุปการะ{% endblock %}
 
@@ -61,7 +62,7 @@
     <div class="card-body">
         <h2 class="h5">ตารางรายเดือน</h2>
         {% if monthly %}
-            <div class="table-responsive">
+            <div class="table-responsive" style="overflow-x:auto;">
                 <table class="table table-striped align-middle mb-0">
                     <thead>
                         <tr>
@@ -92,7 +93,7 @@
 <div class="card shadow-sm">
     <div class="card-body">
         <h2 class="h5">แยกตามสถานะสัญญา</h2>
-        <div class="table-responsive">
+        <div class="table-responsive" style="overflow-x:auto;">
             <table class="table table-striped align-middle mb-0">
                 <thead>
                     <tr><th>สถานะ</th><th class="text-end">จำนวน</th></tr>
@@ -100,7 +101,7 @@
                 <tbody>
                     {% for row in status_rows %}
                         <tr>
-                            <td>{{ row.label }}</td>
+                            <td><span class="status-pill {{ row.value|status_class }}">{{ row.label }}</span></td>
                             <td class="text-end">{{ row.total }}</td>
                         </tr>
                     {% endfor %}

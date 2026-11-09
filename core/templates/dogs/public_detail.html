@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}{{ dog.name }} - สุนัขรอรับอุปการะ{% endblock %}
 
@@ -33,7 +34,7 @@
             <dt class="col-sm-4">วันที่รับเข้า</dt>
             <dd class="col-sm-8">{{ dog.intake_date }}</dd>
             <dt class="col-sm-4">สถานะ</dt>
-            <dd class="col-sm-8"><span class="badge bg-success">{{ dog.get_status_display }}</span></dd>
+            <dd class="col-sm-8"><span class="status-pill {{ dog.status|status_class }}">{{ dog.get_status_display }}</span></dd>
         </dl>
         <p>{{ dog.description|linebreaksbr|default:'-' }}</p>
         <a class="btn btn-primary" href="{% url 'interview_book' dog.pk %}">จองคิวสัมภาษณ์ (Book Interview)</a>

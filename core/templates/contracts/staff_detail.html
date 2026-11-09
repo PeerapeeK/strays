@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}สัญญารับอุปการะ {{ contract.contract_no }}{% endblock %}
 
@@ -17,7 +18,7 @@
                     ({{ contract.interview_request.adopter.username }})</p>
                 <p class="mb-0">วันเริ่มสัญญา: {{ contract.start_date|date:'d/m/Y' }}</p>
             </div>
-            <span class="badge bg-secondary fs-6">{{ contract.get_status_display }}</span>
+            <span class="status-pill {{ contract.status|status_class }} fs-6">{{ contract.get_status_display }}</span>
         </div>
         <div class="d-flex flex-wrap gap-2">
             {% if contract.status == 'draft' %}
@@ -41,7 +42,7 @@
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <h2 class="h5 mb-3">การติดตามผล</h2>
-        <div class="table-responsive">
+        <div class="table-responsive" style="overflow-x:auto;">
             <table class="table table-sm align-middle mb-0">
                 <thead>
                     <tr>
@@ -57,9 +58,13 @@
                         <tr>
                             <td>{{ follow_up.day_offset }} วัน</td>
                             <td>{{ follow_up.due_date|date:'d/m/Y' }}</td>
-                            <td><span class="badge bg-secondary">{{ follow_up.get_status_display }}</span></td>
+                            <td><span class="status-pill {{ follow_up.status|status_class }}">{{ follow_up.get_status_display }}</span></td>
                             <td>
-                                {% if follow_up.evaluation %}ประเมินแล้ว{% else %}ยังไม่ประเมิน{% endif %}
+                                {% if follow_up.evaluation %}
+                                    <span class="status-pill status-adopted">ประเมินแล้ว</span>
+                                {% else %}
+                                    <span class="status-pill status-pending">ยังไม่ประเมิน</span>
+                                {% endif %}
                             </td>
                             <td class="text-end">
                                 <a class="btn btn-sm btn-outline-primary" href="{% url 'staff_followup_detail' follow_up.pk %}">ดูรายละเอียด</a>
@@ -80,7 +85,7 @@
         {% for home_visit in home_visits %}
             <div class="border rounded p-3 mb-3">
                 <p class="mb-1">วันและเวลา: <strong>{{ home_visit.scheduled_at|date:'d/m/Y H:i' }}</strong></p>
-                <p class="mb-1">สถานะ: <span class="badge bg-secondary">{{ home_visit.get_status_display }}</span></p>
+                <p class="mb-1">สถานะ: <span class="status-pill {{ home_visit.status|status_class }}">{{ home_visit.get_status_display }}</span></p>
                 {% if home_visit.notes %}<p class="mb-1 text-muted">{{ home_visit.notes|linebreaksbr }}</p>{% endif %}
                 {% if home_visit.status == 'reschedule_requested' %}
                     <p class="mb-1">ขอเลื่อนไปเป็น: {{ home_visit.requested_scheduled_at|date:'d/m/Y H:i' }}</p>

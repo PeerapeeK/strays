@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}จัดการนัดสัมภาษณ์{% endblock %}
 
@@ -30,7 +31,7 @@
 </form>
 
 {% if interviews %}
-    <div class="table-responsive">
+    <div class="table-responsive" style="overflow-x:auto;">
         <table class="table table-striped align-middle bg-white">
             <thead>
                 <tr>
@@ -49,7 +50,7 @@
                         <td>{{ interview.dog.name }}</td>
                         <td>{{ interview.full_name }}<br><span class="text-muted small">{{ interview.adopter.username }}</span></td>
                         <td>{{ interview.scheduled_at|date:'d/m/Y H:i' }}</td>
-                        <td><span class="badge bg-secondary">{{ interview.get_status_display }}</span></td>
+                        <td><span class="status-pill {{ interview.status|status_class }}">{{ interview.get_status_display }}</span></td>
                         <td class="text-end">
                             {% if interview.status == 'pending' %}
                                 <form method="post" action="{% url 'staff_interview_confirm' interview.pk %}" class="d-inline">
@@ -93,6 +94,7 @@
                             <div class="modal-body">
                                 <label class="form-label" for="reject-reason-{{ interview.pk }}">{{ reject_form.reason.label }}</label>
                                 {{ reject_form.reason }}
+                                {% for error in reject_form.reason.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>

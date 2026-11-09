@@ -23,7 +23,7 @@
                                 {{ field }}
                             {% endif %}
                             {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-                            {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+                            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                         </div>
                     {% endfor %}
                     <button type="submit" class="btn btn-primary w-100">สมัครสมาชิก</button>

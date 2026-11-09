@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}จัดการสัญญารับอุปการะ{% endblock %}
 
@@ -26,7 +27,7 @@
 </form>
 
 {% if contracts %}
-    <div class="table-responsive">
+    <div class="table-responsive" style="overflow-x:auto;">
         <table class="table table-striped align-middle bg-white">
             <thead>
                 <tr>
@@ -45,7 +46,7 @@
                         <td>{{ contract.interview_request.dog.name }}</td>
                         <td>{{ contract.interview_request.full_name }}</td>
                         <td>{{ contract.start_date|date:'d/m/Y' }}</td>
-                        <td><span class="badge bg-secondary">{{ contract.get_status_display }}</span></td>
+                        <td><span class="status-pill {{ contract.status|status_class }}">{{ contract.get_status_display }}</span></td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-outline-primary" href="{% url 'staff_contract_detail' contract.pk %}">ดูรายละเอียด</a>
                         </td>

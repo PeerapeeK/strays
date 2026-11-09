@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}จัดการผู้ใช้{% endblock %}
 
@@ -7,7 +8,7 @@
     <h1 class="h3 mb-0">จัดการผู้ใช้</h1>
     <a class="btn btn-primary" href="{% url 'staff_create' %}">สร้างบัญชีเจ้าหน้าที่</a>
 </div>
-<div class="table-responsive">
+<div class="table-responsive" style="overflow-x:auto;">
     <table class="table table-striped align-middle bg-white">
         <thead>
             <tr>
@@ -28,9 +29,9 @@
                     <td>{% if row.role %}<span class="badge bg-secondary">{{ row.role }}</span>{% else %}-{% endif %}</td>
                     <td>
                         {% if row.user.is_active %}
-                            <span class="badge bg-success">ใช้งาน</span>
+                            <span class="status-pill status-available">ใช้งาน</span>
                         {% else %}
-                            <span class="badge bg-danger">ถูกระงับ</span>
+                            <span class="status-pill status-rejected">ถูกระงับ</span>
                         {% endif %}
                     </td>
                     <td class="text-end">
