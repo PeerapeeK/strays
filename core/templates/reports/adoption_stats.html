@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load status_tags %}
 
 {% block title %}รายงานการรับอุปการะ{% endblock %}
@@ -6,7 +6,7 @@
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h1 class="h3 mb-0">รายงานการรับอุปการะ</h1>
-    <a class="btn btn-success" href="{% url 'adoption_stats_csv' %}?start={{ start_value }}&end={{ end_value }}">ส่งออก CSV</a>
+    <a class="btn btn-outline-secondary" href="{% url 'adoption_stats_csv' %}?start={{ start_value }}&end={{ end_value }}">ส่งออก CSV</a>
 </div>
 
 <form method="get" class="row g-2 align-items-end mb-4">
@@ -63,7 +63,7 @@
         <h2 class="h5">ตารางรายเดือน</h2>
         {% if monthly %}
             <div class="table-responsive" style="overflow-x:auto;">
-                <table class="table table-striped align-middle mb-0">
+                <table class="table align-middle mb-0">
                     <thead>
                         <tr>
                             <th>เดือน</th>
@@ -94,7 +94,7 @@
     <div class="card-body">
         <h2 class="h5">แยกตามสถานะสัญญา</h2>
         <div class="table-responsive" style="overflow-x:auto;">
-            <table class="table table-striped align-middle mb-0">
+            <table class="table align-middle mb-0">
                 <thead>
                     <tr><th>สถานะ</th><th class="text-end">จำนวน</th></tr>
                 </thead>
@@ -134,17 +134,17 @@
                 {
                     label: 'สัญญาทั้งหมด',
                     data: read('adoption-monthly-totals'),
-                    backgroundColor: 'rgba(13, 110, 253, 0.7)'
+                    backgroundColor: '#20201D'
                 },
                 {
                     label: 'มีผลบังคับใช้',
                     data: read('adoption-monthly-active'),
-                    backgroundColor: 'rgba(25, 135, 84, 0.7)'
+                    backgroundColor: '#F2C62E'
                 },
                 {
                     label: 'ยอมรับแล้ว',
                     data: read('adoption-monthly-acknowledged'),
-                    backgroundColor: 'rgba(255, 193, 7, 0.7)'
+                    backgroundColor: '#FAD3E6'
                 }
             ]
         },

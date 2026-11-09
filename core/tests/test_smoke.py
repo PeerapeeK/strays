@@ -207,6 +207,9 @@ class SmokeTests(TestCase):
             reverse('adoption_stats_csv'),
             reverse('followup_stats_csv'),
             reverse('audit_log'),
+            reverse('staff_dashboard'),
+            reverse('dog_list'),
+            reverse('staff_interview_list'),
         ):
             with self.subTest(role='adopter', url=url):
                 self.assertEqual(self.client.get(url).status_code, 403)
@@ -215,6 +218,51 @@ class SmokeTests(TestCase):
         self.assertEqual(
             self.client.get(reverse('audit_log')).status_code, 403
         )
+
+
+class StaffWorkspaceTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.staff = User.objects.create_user(
+            username='workspace_staff', password=PASSWORD
+        )
+        cls.staff.groups.add(Group.objects.get(name=STAFF))
+        cls.dog = Dog.objects.create(name='WorkspaceDog', status=Dog.AVAILABLE)
+
+    def setUp(self):
+        self.client.force_login(self.staff)
+
+    def test_dashboard_has_heading_welcome_and_tabs(self):
+        response = self.client.get(reverse('staff_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ระบบจัดการศูนย์พักพิง')
+        self.assertContains(response, 'ยินดีต้อนรับ,')
+        self.assertContains(response, 'staff-tabbar')
+        self.assertContains(response, reverse('dog_list'))
+        self.assertContains(response, reverse('staff_interview_list'))
+
+    def test_dog_list_uses_staff_components_and_active_tab(self):
+        response = self.client.get(reverse('dog_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ข้อมูลสุนัขในระบบ')
+        self.assertContains(response, 'รายชื่อสุนัขจรจัดที่รอการพิจารณาหรือกำลังหาบ้าน')
+        self.assertContains(response, 'เพิ่มข้อมูลสุนัข')
+        self.assertContains(response, 'แก้ไขข้อมูล')
+        self.assertContains(response, 'staff-tab is-active')
+
+    def test_interview_list_uses_staff_components_and_active_tab(self):
+        response = self.client.get(reverse('staff_interview_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'คำขอรับเลี้ยง')
+        self.assertContains(response, 'ตรวจสอบและดำเนินการกับคำขอรับเลี้ยงล่าสุด')
+        self.assertContains(response, 'staff-tab is-active')
+
+    def test_dog_form_is_a_full_page_with_photo_upload(self):
+        response = self.client.get(reverse('dog_create'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'เพิ่มข้อมูลสุนัข')
+        self.assertContains(response, 'name="photo"')
+        self.assertNotContains(response, 'name="emoji"')
 
 
 class HomePageTests(TestCase):

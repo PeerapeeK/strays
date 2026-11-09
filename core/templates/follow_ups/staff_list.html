@@ -4,7 +4,12 @@
 {% block title %}จัดการการติดตามผล{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-3">จัดการการติดตามผล</h1>
+<div class="staff-toolbar">
+    <div>
+        <h1 class="h3 mb-1">จัดการการติดตามผล</h1>
+        <p class="staff-subtitle mb-0">ติดตามผลหลังการรับอุปการะตามกำหนด 14, 30, 90 และ 180 วัน</p>
+    </div>
+</div>
 
 <form method="get" class="row g-2 align-items-end mb-3">
     <div class="col-md-6">
@@ -28,7 +33,7 @@
 
 {% if follow_ups %}
     <div class="table-responsive" style="overflow-x:auto;">
-        <table class="table table-striped align-middle bg-white">
+        <table class="table align-middle mb-0">
             <thead>
                 <tr>
                     <th>สัญญา</th>
@@ -50,7 +55,7 @@
                         <td>{{ follow_up.due_date|date:'d/m/Y' }}</td>
                         <td><span class="status-pill {{ follow_up.status|status_class }}">{{ follow_up.get_status_display }}</span></td>
                         <td class="text-end">
-                            <a class="btn btn-sm btn-outline-primary" href="{% url 'staff_followup_detail' follow_up.pk %}">ดูรายละเอียด</a>
+                            <a class="btn btn-outline-secondary btn-sm" href="{% url 'staff_followup_detail' follow_up.pk %}">ดูรายละเอียด</a>
                         </td>
                     </tr>
                 {% endfor %}

@@ -1,76 +1,88 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if is_edit %}แก้ไขสุนัข{% else %}เพิ่มสุนัข{% endif %}{% endblock %}
+{% block title %}{% if is_edit %}แก้ไขสุนัข{% else %}เพิ่มข้อมูลสุนัข{% endif %}{% endblock %}
 
 {% block content %}
-<div class="form-flow">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
-        <div>
-            <h1 class="h3 mb-1">{% if is_edit %}แก้ไขข้อมูลสุนัข{% else %}เพิ่มข้อมูลสุนัข{% endif %}</h1>
-            <p class="text-muted mb-0">
-                {% if is_edit %}ปรับปรุงข้อมูลของ {{ dog.name }}{% else %}บันทึกข้อมูลสุนัขตัวใหม่เข้าสู่ระบบ{% endif %}
-            </p>
-        </div>
-        <a class="btn btn-link px-0" href="{% url 'dog_list' %}">กลับไปยังรายการ</a>
-    </div>
-
-    {% if form.non_field_errors %}
-        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-    {% endif %}
-
-    <form method="post" enctype="multipart/form-data" novalidate data-loading-form>
-        {% csrf_token %}
-
-        <section class="form-section" aria-labelledby="dog-step-1">
-            <h2 class="form-section-title" id="dog-step-1">
-                <span class="form-section-num">01</span> ข้อมูลพื้นฐาน
-            </h2>
-            {% include 'includes/form_required_note.html' %}
-            {% include 'includes/form_field.html' with field=form.name %}
-            {% include 'includes/form_field.html' with field=form.breed %}
-            {% include 'includes/form_field.html' with field=form.sex %}
-            {% include 'includes/form_field.html' with field=form.age_months %}
-            {% include 'includes/form_field.html' with field=form.size %}
-            {% include 'includes/form_field.html' with field=form.color %}
-        </section>
-
-        <section class="form-section" aria-labelledby="dog-step-2">
-            <h2 class="form-section-title" id="dog-step-2">
-                <span class="form-section-num">02</span> รายละเอียดและสถานะ
-            </h2>
-            {% include 'includes/form_field.html' with field=form.description %}
-            {% include 'includes/form_field.html' with field=form.status %}
-            {% include 'includes/form_field.html' with field=form.intake_date %}
-        </section>
-
-        <section class="form-section" aria-labelledby="dog-step-3">
-            <h2 class="form-section-title" id="dog-step-3">
-                <span class="form-section-num">03</span> ข้อมูลสุขภาพ
-            </h2>
-            {% include 'includes/form_field.html' with field=form.vaccinated %}
-            {% include 'includes/form_field.html' with field=form.sterilized %}
-        </section>
-
-        <section class="form-section" aria-labelledby="dog-step-4">
-            <h2 class="form-section-title" id="dog-step-4">
-                <span class="form-section-num">04</span> รูปภาพ
-            </h2>
-            {% include 'includes/form_field.html' with field=form.photo %}
-            <div id="dog-photo-error" class="text-danger small d-none" role="alert"></div>
-            <div id="dog-photo-preview" class="photo-preview" aria-live="polite">
-                {% if is_edit and dog.photo %}
-                    <figure class="photo-preview-item">
-                        <img src="{{ dog.photo.url }}" alt="รูปปัจจุบันของ {{ dog.name }}">
-                        <figcaption>รูปปัจจุบัน</figcaption>
-                    </figure>
-                {% endif %}
+<div class="staff-page">
+    <div class="staff-form-shell">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+            <div>
+                <h1 class="staff-heading">
+                    {% if is_edit %}แก้ไขข้อมูลสุนัข{% else %}เพิ่มข้อมูลสุนัข{% endif %}
+                </h1>
+                <p class="staff-subtitle">
+                    {% if is_edit %}ปรับปรุงข้อมูลของ {{ dog.name }}{% else %}บันทึกข้อมูลสุนัขตัวใหม่เข้าสู่ระบบ{% endif %}
+                </p>
             </div>
-        </section>
-
-        <div class="d-flex flex-wrap gap-2 mt-4">
-            <button type="submit" class="btn btn-primary" data-loading-text="กำลังบันทึก...">บันทึก</button>
-            <a class="btn btn-link" href="{% url 'dog_list' %}">ยกเลิก</a>
+            <a class="btn btn-outline-secondary btn-sm" href="{% url 'dog_list' %}">กลับไปยังรายการ</a>
         </div>
-    </form>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="staff-form-card" novalidate data-loading-form>
+            {% csrf_token %}
+
+            <section class="form-section" aria-labelledby="dog-step-1">
+                <h2 class="form-section-title" id="dog-step-1">
+                    <span class="form-section-num">01</span> ข้อมูลพื้นฐาน
+                </h2>
+                {% include 'includes/form_required_note.html' %}
+                {% include 'includes/form_field.html' with field=form.name %}
+                {% include 'includes/form_field.html' with field=form.breed %}
+                <div class="row g-3">
+                    <div class="col-sm-6">{% include 'includes/form_field.html' with field=form.sex %}</div>
+                    <div class="col-sm-6">{% include 'includes/form_field.html' with field=form.age_months %}</div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-sm-6">{% include 'includes/form_field.html' with field=form.size %}</div>
+                    <div class="col-sm-6">{% include 'includes/form_field.html' with field=form.color %}</div>
+                </div>
+            </section>
+
+            <section class="form-section" aria-labelledby="dog-step-2">
+                <h2 class="form-section-title" id="dog-step-2">
+                    <span class="form-section-num">02</span> รายละเอียดและสถานะ
+                </h2>
+                {% include 'includes/form_field.html' with field=form.description %}
+                <div class="row g-3">
+                    <div class="col-sm-6">{% include 'includes/form_field.html' with field=form.status %}</div>
+                    <div class="col-sm-6">{% include 'includes/form_field.html' with field=form.intake_date %}</div>
+                </div>
+            </section>
+
+            <section class="form-section" aria-labelledby="dog-step-3">
+                <h2 class="form-section-title" id="dog-step-3">
+                    <span class="form-section-num">03</span> ข้อมูลสุขภาพ
+                </h2>
+                <div class="row g-3">
+                    <div class="col-sm-6">{% include 'includes/form_field.html' with field=form.vaccinated %}</div>
+                    <div class="col-sm-6">{% include 'includes/form_field.html' with field=form.sterilized %}</div>
+                </div>
+            </section>
+
+            <section class="form-section" aria-labelledby="dog-step-4">
+                <h2 class="form-section-title" id="dog-step-4">
+                    <span class="form-section-num">04</span> รูปภาพ
+                </h2>
+                {% include 'includes/form_field.html' with field=form.photo %}
+                <div id="dog-photo-error" class="text-danger small d-none" role="alert"></div>
+                <div id="dog-photo-preview" class="photo-preview" aria-live="polite">
+                    {% if is_edit and dog.photo %}
+                        <figure class="photo-preview-item">
+                            <img src="{{ dog.photo.url }}" alt="รูปปัจจุบันของ {{ dog.name }}">
+                            <figcaption>รูปปัจจุบัน</figcaption>
+                        </figure>
+                    {% endif %}
+                </div>
+            </section>
+
+            <div class="staff-form-actions">
+                <a class="btn btn-outline-secondary" href="{% url 'dog_list' %}">ยกเลิก</a>
+                <button type="submit" class="btn btn-primary" data-loading-text="กำลังบันทึก...">บันทึก</button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

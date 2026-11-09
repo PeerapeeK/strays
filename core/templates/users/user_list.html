@@ -4,12 +4,15 @@
 {% block title %}จัดการผู้ใช้{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">จัดการผู้ใช้</h1>
+<div class="staff-toolbar">
+    <div>
+        <h1 class="h3 mb-1">จัดการผู้ใช้</h1>
+        <p class="staff-subtitle mb-0">สร้าง แก้ไข และระงับบัญชีผู้ใช้งานในระบบ</p>
+    </div>
     <a class="btn btn-primary" href="{% url 'staff_create' %}">สร้างบัญชีเจ้าหน้าที่</a>
 </div>
 <div class="table-responsive" style="overflow-x:auto;">
-    <table class="table table-striped align-middle bg-white">
+    <table class="table align-middle mb-0">
         <thead>
             <tr>
                 <th>ชื่อผู้ใช้</th>
@@ -40,7 +43,7 @@
                         {% endif %}
                     </td>
                     <td class="text-end">
-                        <a class="btn btn-sm btn-outline-primary" href="{% url 'user_edit' row.user.pk %}">แก้ไข</a>
+                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'user_edit' row.user.pk %}">แก้ไข</a>
                         {% if row.can_delete %}
                             <a class="btn btn-sm btn-outline-danger" href="{% url 'admin_user_delete' row.user.pk %}">ลบ</a>
                         {% endif %}
@@ -53,7 +56,7 @@
                                 {% if row.user.is_active %}
                                     <button type="submit" class="btn btn-sm btn-outline-danger">ระงับ</button>
                                 {% else %}
-                                    <button type="submit" class="btn btn-sm btn-outline-success">เปิดใช้งาน</button>
+                                    <button type="submit" class="btn btn-sm btn-primary">เปิดใช้งาน</button>
                                 {% endif %}
                             </form>
                         {% endif %}

@@ -3,30 +3,28 @@
 {% block title %}{% if is_edit %}แก้ไขนัดตรวจบ้าน{% else %}สร้างนัดตรวจบ้าน{% endif %}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-7">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h1 class="h4 mb-3">
-                    {% if is_edit %}แก้ไขนัดตรวจบ้าน{% else %}สร้างนัดตรวจบ้าน{% endif %}
-                </h1>
-                <p class="mb-3">สัญญา: <strong>{{ contract.contract_no }}</strong></p>
-                {% if form.non_field_errors %}
-                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-                {% endif %}
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    {% include 'includes/form_required_note.html' %}
-                    {% for field in form %}
-                        {% include 'includes/form_field.html' with field=field %}
-                    {% endfor %}
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">บันทึก</button>
-                        <a class="btn btn-outline-secondary" href="{% url 'staff_contract_detail' contract.pk %}">ยกเลิก</a>
-                    </div>
-                </form>
+<div class="staff-page">
+    <div class="staff-form-shell">
+        <h1 class="staff-heading">
+            {% if is_edit %}แก้ไขนัดตรวจบ้าน{% else %}สร้างนัดตรวจบ้าน{% endif %}
+        </h1>
+        <p class="staff-subtitle">สัญญา: <strong>{{ contract.contract_no }}</strong></p>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <form method="post" class="staff-form-card" novalidate>
+            {% csrf_token %}
+            {% include 'includes/form_required_note.html' %}
+            {% for field in form %}
+                {% include 'includes/form_field.html' with field=field %}
+            {% endfor %}
+            <div class="staff-form-actions">
+                <a class="btn btn-outline-secondary" href="{% url 'staff_contract_detail' contract.pk %}">ยกเลิก</a>
+                <button type="submit" class="btn btn-primary">บันทึก</button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 {% endblock %}

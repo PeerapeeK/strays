@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load status_tags %}
 
 {% block title %}สัญญารับอุปการะ {{ contract.contract_no }}{% endblock %}
@@ -24,7 +24,7 @@
             {% if contract.status == 'draft' %}
                 <form method="post" action="{% url 'staff_contract_activate' contract.pk %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-success">เปิดใช้งานสัญญา</button>
+                    <button type="submit" class="btn btn-primary">เปิดใช้งานสัญญา</button>
                 </form>
             {% endif %}
             <a class="btn btn-outline-secondary" href="{% url 'staff_contract_edit' contract.pk %}">แก้ไขสัญญา</a>
@@ -67,7 +67,7 @@
                                 {% endif %}
                             </td>
                             <td class="text-end">
-                                <a class="btn btn-sm btn-outline-primary" href="{% url 'staff_followup_detail' follow_up.pk %}">ดูรายละเอียด</a>
+                                <a class="btn btn-sm btn-outline-secondary" href="{% url 'staff_followup_detail' follow_up.pk %}">ดูรายละเอียด</a>
                             </td>
                         </tr>
                     {% empty %}
@@ -93,7 +93,7 @@
                     <div class="d-flex gap-2">
                         <form method="post" action="{% url 'homevisit_approve' home_visit.pk %}">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-success">อนุมัติการเลื่อนนัด</button>
+                            <button type="submit" class="btn btn-sm btn-primary">อนุมัติการเลื่อนนัด</button>
                         </form>
                         <form method="post" action="{% url 'homevisit_deny' home_visit.pk %}">
                             {% csrf_token %}

@@ -1,0 +1,8 @@
+{% with current=request.resolver_match.url_name %}
+<nav class="staff-tabbar" aria-label="เมนูจัดการศูนย์พักพิง">
+    <a class="staff-tab {% if current == 'dog_list' or current == 'dog_create' or current == 'dog_detail' or current == 'dog_edit' %}is-active{% endif %}"
+       href="{% url 'dog_list' %}">จัดการข้อมูลสุนัข</a>
+    <a class="staff-tab {% if current == 'staff_interview_list' or current == 'staff_interview_result' or current == 'staff_contract_create' %}is-active{% endif %}"
+       href="{% url 'staff_interview_list' %}">คำขอรับเลี้ยง</a>
+</nav>
+{% endwith %}

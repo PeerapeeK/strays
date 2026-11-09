@@ -1,13 +1,11 @@
 {% extends 'base.html' %}
 
-{% block title %}แดชบอร์ดเจ้าหน้าที่{% endblock %}
+{% block title %}ระบบจัดการศูนย์พักพิง{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-3">แดชบอร์ดเจ้าหน้าที่</h1>
-<div class="card shadow-sm">
-    <div class="card-body">
-        <p class="mb-2">ยินดีต้อนรับ {{ user.profile.full_name|default:user.username }}</p>
-        <p class="text-muted mb-0">จัดการข้อมูลสุนัข นัดสัมภาษณ์ สัญญา และการติดตามผลหลังการรับอุปการะ</p>
-    </div>
+<div class="staff-page">
+    <h1 class="staff-heading">ระบบจัดการศูนย์พักพิง</h1>
+    <p class="staff-subtitle">ยินดีต้อนรับ, {{ user.profile.full_name|default:user.username }}</p>
+    {% include 'includes/staff_tabs.html' %}
 </div>
 {% endblock %}

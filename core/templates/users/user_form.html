@@ -13,7 +13,7 @@
                 <p class="text-muted mb-0">ปรับปรุงข้อมูลบัญชีและข้อมูลส่วนตัวของผู้ใช้</p>
             </div>
         </div>
-        <a class="btn btn-link px-0" href="{% url 'user_list' %}">กลับไปยังรายการ</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'user_list' %}">กลับไปยังรายการ</a>
     </div>
 
     {% if form.non_field_errors %}
@@ -47,7 +47,7 @@
 
         <div class="d-flex flex-wrap gap-2 mt-4">
             <button type="submit" class="btn btn-primary" data-loading-text="กำลังบันทึก...">บันทึก</button>
-            <a class="btn btn-link" href="{% url 'user_list' %}">ยกเลิก</a>
+            <a class="btn btn-outline-secondary" href="{% url 'user_list' %}">ยกเลิก</a>
         </div>
     </form>
 

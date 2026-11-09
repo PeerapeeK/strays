@@ -3,25 +3,24 @@
 {% block title %}สร้างบัญชีเจ้าหน้าที่{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h1 class="h4 mb-3">สร้างบัญชีเจ้าหน้าที่</h1>
-                {% if form.non_field_errors %}
-                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-                {% endif %}
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    {% include 'includes/form_required_note.html' %}
-                    {% for field in form %}
-                        {% include 'includes/form_field.html' with field=field %}
-                    {% endfor %}
-                    <button type="submit" class="btn btn-primary">สร้างบัญชี</button>
-                    <a class="btn btn-link" href="{% url 'user_list' %}">ยกเลิก</a>
-                </form>
+<div class="staff-page">
+    <div class="staff-form-shell">
+        <h1 class="staff-heading">สร้างบัญชีเจ้าหน้าที่</h1>
+        <p class="staff-subtitle">กำหนดชื่อผู้ใช้และข้อมูลส่วนตัวของเจ้าหน้าที่ใหม่</p>
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <form method="post" class="staff-form-card" novalidate>
+            {% csrf_token %}
+            {% include 'includes/form_required_note.html' %}
+            {% for field in form %}
+                {% include 'includes/form_field.html' with field=field %}
+            {% endfor %}
+            <div class="staff-form-actions">
+                <a class="btn btn-outline-secondary" href="{% url 'user_list' %}">ยกเลิก</a>
+                <button type="submit" class="btn btn-primary">สร้างบัญชี</button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 {% endblock %}

@@ -11,6 +11,7 @@ from django.utils import timezone
 from PIL import Image
 
 from core.models import (
+    AdoptionContract,
     Assessment,
     Dog,
     HousingPhoto,
@@ -434,6 +435,98 @@ class StaffInterviewViewTests(InterviewTestBase):
             reverse('interview_list'),
             reverse('interview_detail', args=[interview.pk]),
             reverse('interview_book', args=[self.dog.pk]),
+        ):
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 403)
+
+
+class StaffInterviewActionVisibilityTests(InterviewTestBase):
+    def setUp(self):
+        self.client.force_login(self.staff)
+
+    def actions_response(self, interview):
+        return self.client.get(
+            reverse('staff_interview_list'), {'q': interview.code}
+        )
+
+    def test_pending_request_shows_review_confirm_and_reject_only(self):
+        interview = self.create_interview(status=InterviewRequest.PENDING)
+        response = self.actions_response(interview)
+
+        self.assertContains(response, 'data-action="review"')
+        self.assertContains(response, 'data-action="confirm"')
+        self.assertContains(response, 'data-action="reject"')
+        self.assertNotContains(response, 'data-action="result"')
+        self.assertNotContains(response, 'data-action="contract"')
+
+    def test_confirmed_request_shows_review_and_result_only(self):
+        interview = self.create_interview(status=InterviewRequest.CONFIRMED)
+        response = self.actions_response(interview)
+
+        self.assertContains(response, 'data-action="review"')
+        self.assertContains(response, 'data-action="result"')
+        self.assertNotContains(response, 'data-action="confirm"')
+        self.assertNotContains(response, 'data-action="reject"')
+        self.assertNotContains(response, 'data-action="contract"')
+
+    def test_rejected_and_cancelled_requests_show_review_only(self):
+        for status in (InterviewRequest.REJECTED, InterviewRequest.CANCELLED):
+            with self.subTest(status=status):
+                interview = self.create_interview(status=status)
+                response = self.actions_response(interview)
+                self.assertContains(response, 'data-action="review"')
+                for action in ('confirm', 'reject', 'result', 'contract'):
+                    self.assertNotContains(
+                        response, f'data-action="{action}"'
+                    )
+
+    def test_failed_result_shows_review_only(self):
+        interview = self.create_interview(status=InterviewRequest.COMPLETED)
+        InterviewResult.objects.create(
+            interview_request=interview,
+            outcome=InterviewResult.FAILED,
+            notes='ไม่ผ่าน',
+        )
+        response = self.actions_response(interview)
+
+        self.assertContains(response, 'data-action="review"')
+        self.assertNotContains(response, 'data-action="result"')
+        self.assertNotContains(response, 'data-action="contract"')
+
+    def test_approved_result_without_contract_shows_contract_action(self):
+        interview = self.create_interview(status=InterviewRequest.COMPLETED)
+        InterviewResult.objects.create(
+            interview_request=interview,
+            outcome=InterviewResult.PASSED,
+            notes='ผ่าน',
+        )
+        response = self.actions_response(interview)
+
+        self.assertContains(response, 'data-action="review"')
+        self.assertContains(response, 'data-action="contract"')
+        self.assertNotContains(response, 'data-action="result"')
+        self.assertNotContains(response, 'data-action="confirm"')
+        self.assertNotContains(response, 'data-action="reject"')
+
+    def test_approved_result_with_contract_hides_contract_action(self):
+        interview = self.create_interview(status=InterviewRequest.COMPLETED)
+        InterviewResult.objects.create(
+            interview_request=interview,
+            outcome=InterviewResult.PASSED,
+            notes='ผ่าน',
+        )
+        AdoptionContract.objects.create(interview_request=interview)
+        response = self.actions_response(interview)
+
+        self.assertContains(response, 'data-action="review"')
+        self.assertNotContains(response, 'data-action="contract"')
+
+    def test_adopter_gets_403_on_staff_workspace_pages(self):
+        self.client.force_login(self.adopter)
+        for url in (
+            reverse('staff_dashboard'),
+            reverse('dog_list'),
+            reverse('staff_interview_list'),
         ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 403)

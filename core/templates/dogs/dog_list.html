@@ -1,66 +1,70 @@
 {% extends 'base.html' %}
 {% load status_tags %}
 
-{% block title %}จัดการสุนัข{% endblock %}
+{% block title %}จัดการข้อมูลสุนัข{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">จัดการสุนัข</h1>
-    <a class="btn btn-primary" href="{% url 'dog_create' %}">เพิ่มสุนัข</a>
-</div>
+<div class="staff-page">
+    {% include 'includes/staff_tabs.html' %}
 
-<form method="get" class="row g-2 align-items-end mb-3">
-    <div class="col-md-6">
-        <label class="form-label" for="q">ค้นหา</label>
-        <input type="text" class="form-control" id="q" name="q" value="{{ q }}" placeholder="ชื่อ พันธุ์ สี หรือรายละเอียด">
+    <div class="staff-toolbar">
+        <div>
+            <h2>ข้อมูลสุนัขในระบบ</h2>
+            <p class="staff-subtitle">รายชื่อสุนัขจรจัดที่รอการพิจารณาหรือกำลังหาบ้าน</p>
+        </div>
+        <a class="btn btn-primary" href="{% url 'dog_create' %}">
+            <span aria-hidden="true">➕</span> เพิ่มข้อมูลสุนัข
+        </a>
     </div>
-    <div class="col-md-4">
-        <label class="form-label" for="status">สถานะ</label>
-        <select class="form-select" id="status" name="status">
-            <option value="">ทั้งหมด</option>
+
+    <form method="get" class="staff-filterbar" role="search">
+        <div class="staff-search">
+            <label class="visually-hidden" for="q">ค้นหา</label>
+            <input type="text" class="form-control" id="q" name="q" value="{{ q }}"
+                   placeholder="ค้นหาชื่อ พันธุ์ สี หรือรายละเอียด">
+            <button type="submit" class="dog-search-btn" aria-label="ค้นหา">🔍</button>
+        </div>
+        <div class="staff-filter-pills" role="group" aria-label="กรองตามสถานะ">
+            <a class="dog-filter-pill {% if not status %}is-active{% endif %}"
+               href="?q={{ q|urlencode }}">ทั้งหมด</a>
             {% for value, label in status_choices %}
-                <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+                <a class="dog-filter-pill {% if status == value %}is-active{% endif %}"
+                   href="?status={{ value|urlencode }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}">{{ label }}</a>
             {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-2 d-grid">
-        <button type="submit" class="btn btn-outline-primary">ค้นหา</button>
-    </div>
-</form>
+        </div>
+    </form>
 
-<div class="table-responsive" style="overflow-x:auto;">
-    <table class="table table-striped align-middle bg-white">
-        <thead>
-            <tr>
-                <th>ชื่อ</th>
-                <th>พันธุ์</th>
-                <th>เพศ</th>
-                <th>ขนาด</th>
-                <th>อายุ (เดือน)</th>
-                <th>สถานะ</th>
-                <th>วันที่รับเข้า</th>
-                <th class="text-end">การจัดการ</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for dog in dogs %}
-                <tr>
-                    <td>{{ dog.name }}</td>
-                    <td>{{ dog.breed|default:'-' }}</td>
-                    <td>{{ dog.get_sex_display }}</td>
-                    <td>{{ dog.get_size_display }}</td>
-                    <td>{{ dog.age_months }}</td>
-                    <td><span class="status-pill {{ dog.status|status_class }}">{{ dog.get_status_display }}</span></td>
-                    <td>{{ dog.intake_date }}</td>
-                    <td class="text-end">
-                        <a class="btn btn-sm btn-outline-primary" href="{% url 'dog_detail' dog.pk %}">ดูข้อมูล</a>
-                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'dog_edit' dog.pk %}">แก้ไข</a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr><td colspan="8" class="text-center text-muted">ไม่พบสุนัข</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="staff-list">
+        {% for dog in dogs %}
+            {% cycle 'staff-tile--yellow' 'staff-tile--pink' 'staff-tile--line' as tile_tone silent %}
+            {% cycle '🐶' '🐕' '🐩' '🦮' '🐕‍🦺' as dog_emoji silent %}
+            <div class="staff-row">
+                <div class="staff-tile {{ tile_tone }}">
+                    {% if dog.photo %}
+                        <img src="{{ dog.photo.url }}" alt="{{ dog.name }}">
+                    {% else %}
+                        <span aria-hidden="true">{{ dog_emoji }}</span>
+                    {% endif %}
+                </div>
+                <div class="staff-row-text">
+                    <h3 class="staff-row-name">{{ dog.name }}</h3>
+                    <p class="staff-row-meta">
+                        เพศ{{ dog.get_sex_display }} ·
+                        {% if dog.age_months %}อายุ {{ dog.age_months|age_th }}{% else %}ไม่ทราบอายุ{% endif %} ·
+                        {{ dog.breed|default:'พันธุ์ผสม' }}{% if dog.description %} ·
+                        {{ dog.description|truncatechars:60 }}{% endif %}
+                    </p>
+                </div>
+                <div class="staff-row-actions">
+                    <span class="status-pill {% if dog.status == 'available' %}status-available{% else %}status-pending{% endif %}">
+                        {{ dog.get_status_display }}
+                    </span>
+                    <a class="link-underline" href="{% url 'dog_edit' dog.pk %}">แก้ไขข้อมูล</a>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-muted py-4 mb-0">ไม่พบสุนัข</p>
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}
