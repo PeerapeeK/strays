@@ -1,16 +1,20 @@
 import csv
+import mimetypes
 from datetime import timedelta
+from pathlib import Path
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Q
 from django.db.models.deletion import ProtectedError
 from django.db.models.functions import TruncMonth
-from django.http import HttpResponse
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -46,6 +50,7 @@ from .models import (
     InterviewPhoto,
     InterviewRequest,
     InterviewResult,
+    Profile,
     notify,
 )
 from .permissions import ADOPTER, ADMIN, STAFF, role_required, user_role
@@ -62,6 +67,98 @@ from .services import (
 
 
 DOG_EMOJIS = ('🐶', '🐕', '🐩', '🦮', '🐕‍🦺')
+
+# Personal-data uploads are only reachable through this mapping. Dog photos
+# stay public under /media/dogs/.
+PRIVATE_FILE_KINDS = {
+    'profile': {
+        'model': Profile,
+        'field': 'photo',
+        'owner_id': lambda obj: obj.user_id,
+        'select_related': ('user',),
+    },
+    'housing': {
+        'model': HousingPhoto,
+        'field': 'image',
+        'owner_id': lambda obj: obj.interview_request.adopter_id,
+        'select_related': ('interview_request',),
+    },
+    'interview': {
+        'model': InterviewPhoto,
+        'field': 'image',
+        'owner_id': lambda obj: obj.result.interview_request.adopter_id,
+        'select_related': ('result__interview_request',),
+    },
+    'followup': {
+        'model': FollowUpPhoto,
+        'field': 'image',
+        'owner_id': lambda obj: (
+            obj.follow_up.contract.interview_request.adopter_id
+        ),
+        'select_related': (
+            'follow_up__contract__interview_request',
+        ),
+    },
+    'evaluation': {
+        'model': FollowUpEvaluationPhoto,
+        'field': 'image',
+        'owner_id': lambda obj: (
+            obj.evaluation.follow_up.contract.interview_request.adopter_id
+        ),
+        'select_related': (
+            'evaluation__follow_up__contract__interview_request',
+        ),
+    },
+}
+
+
+@login_required
+def protected_file(request, kind, pk):
+    config = PRIVATE_FILE_KINDS.get(kind)
+    if config is None:
+        raise Http404('Unknown file kind')
+
+    media = get_object_or_404(
+        config['model'].objects.select_related(*config['select_related']),
+        pk=pk,
+    )
+    stored_file = getattr(media, config['field'])
+    if not stored_file:
+        raise Http404('File not found')
+
+    role = user_role(request.user)
+    if role not in (ADOPTER, STAFF, ADMIN):
+        raise PermissionDenied
+    if role == ADOPTER and config['owner_id'](media) != request.user.pk:
+        raise PermissionDenied
+
+    relative_path = str(stored_file.name).replace('\\', '/')
+    parts = Path(relative_path).parts
+    if (
+        Path(relative_path).is_absolute()
+        or '..' in parts
+        or not relative_path
+    ):
+        raise Http404('Invalid file path')
+
+    content_type = (
+        mimetypes.guess_type(relative_path)[0] or 'application/octet-stream'
+    )
+
+    if settings.DEBUG:
+        return FileResponse(
+            stored_file.open('rb'), content_type=content_type
+        )
+
+    response = HttpResponse()
+    response['X-Accel-Redirect'] = f'/protected/{relative_path}'
+    response['Content-Type'] = content_type
+    response['Content-Disposition'] = 'inline'
+    return response
+
+
+def healthz(request):
+    return HttpResponse('ok', content_type='text/plain')
 
 
 def home(request):

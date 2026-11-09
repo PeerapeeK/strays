@@ -15,6 +15,8 @@ from core.models import (
 )
 from core.permissions import ADOPTER, ADMIN, STAFF
 
+from . import login_via_view
+
 PASSWORD = 'Str0ngPass!234'
 
 
@@ -98,13 +100,14 @@ class SmokeTests(TestCase):
             reverse('public_dog_detail', args=[self.dog.pk]),
             reverse('privacy'),
             reverse('terms'),
+            reverse('healthz'),
         )
         for url in urls:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
     def test_admin_urls(self):
-        self.assertTrue(self.client.login(username='smoke_admin', password=PASSWORD))
+        self.assertTrue(login_via_view(self.client, 'smoke_admin', PASSWORD))
         expected = {
             reverse('home'): 200,
             reverse('my_profile'): 200,
@@ -144,7 +147,7 @@ class SmokeTests(TestCase):
                 self.assertEqual(self.client.get(url).status_code, status)
 
     def test_staff_urls(self):
-        self.assertTrue(self.client.login(username='smoke_staff', password=PASSWORD))
+        self.assertTrue(login_via_view(self.client, 'smoke_staff', PASSWORD))
         expected = {
             reverse('home'): 200,
             reverse('my_profile'): 200,
@@ -177,7 +180,7 @@ class SmokeTests(TestCase):
                 self.assertEqual(self.client.get(url).status_code, status)
 
     def test_adopter_urls(self):
-        self.assertTrue(self.client.login(username='smoke_adopter', password=PASSWORD))
+        self.assertTrue(login_via_view(self.client, 'smoke_adopter', PASSWORD))
         expected = {
             reverse('home'): 200,
             reverse('my_profile'): 200,
@@ -199,7 +202,7 @@ class SmokeTests(TestCase):
 
     def test_report_and_audit_permissions(self):
         self.assertTrue(
-            self.client.login(username='smoke_adopter', password=PASSWORD)
+            login_via_view(self.client, 'smoke_adopter', PASSWORD)
         )
         for url in (
             reverse('adoption_stats'),
@@ -214,7 +217,7 @@ class SmokeTests(TestCase):
             with self.subTest(role='adopter', url=url):
                 self.assertEqual(self.client.get(url).status_code, 403)
 
-        self.assertTrue(self.client.login(username='smoke_staff', password=PASSWORD))
+        self.assertTrue(login_via_view(self.client, 'smoke_staff', PASSWORD))
         self.assertEqual(
             self.client.get(reverse('audit_log')).status_code, 403
         )

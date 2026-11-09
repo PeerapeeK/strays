@@ -9,6 +9,8 @@ from core.models import AuditEvent, Dog, InterviewRequest
 from core.permissions import ADOPTER, ADMIN, STAFF
 from core.services import is_last_active_admin
 
+from . import login_via_view
+
 PASSWORD = 'Str0ngPass!234'
 
 
@@ -94,7 +96,7 @@ class UsernameChangeTests(UserAdminTestBase):
     def test_admin_changes_username_and_target_stays_logged_in(self):
         target_client = Client()
         self.assertTrue(
-            target_client.login(username='adopter_user', password=PASSWORD)
+            login_via_view(target_client, 'adopter_user', PASSWORD)
         )
         self.client.force_login(self.admin)
 

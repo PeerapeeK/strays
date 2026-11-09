@@ -73,7 +73,7 @@
         <div class="row g-3">
             {% for photo in interview.housing_photos.all %}
                 <div class="col-6 col-md-3">
-                    <img src="{{ photo.image.url }}" class="img-fluid rounded shadow-sm" alt="รูปถ่ายที่อยู่อาศัย">
+                    <img src="{% url 'protected_file' 'housing' photo.pk %}" class="img-fluid rounded shadow-sm" alt="รูปถ่ายที่อยู่อาศัย">
                 </div>
             {% empty %}
                 <p class="text-muted mb-0">ไม่มีรูปถ่าย</p>
@@ -91,7 +91,7 @@
             <div class="row g-3">
                 {% for photo in interview.result.photos.all %}
                     <div class="col-6 col-md-3">
-                        <img src="{{ photo.image.url }}" class="img-fluid rounded shadow-sm" alt="รูปภาพการสัมภาษณ์">
+                        <img src="{% url 'protected_file' 'interview' photo.pk %}" class="img-fluid rounded shadow-sm" alt="รูปภาพการสัมภาษณ์">
                     </div>
                 {% endfor %}
             </div>

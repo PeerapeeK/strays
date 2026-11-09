@@ -1,4 +1,5 @@
 from django import template
+from django.urls import reverse
 
 register = template.Library()
 
@@ -74,11 +75,8 @@ def avatar(user, size=32):
     full_name = profile.full_name if profile else ''
     username = user.get_username() if user else ''
     photo_url = ''
-    if profile and profile.photo:
-        try:
-            photo_url = profile.photo.url
-        except ValueError:
-            photo_url = ''
+    if profile and profile.pk and profile.photo:
+        photo_url = reverse('protected_file', args=['profile', profile.pk])
 
     initials = _initials(full_name, username)
     size = int(size)

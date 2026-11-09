@@ -13,6 +13,8 @@ from core.models import Dog
 from core.permissions import ADOPTER, ADMIN, STAFF
 from core.validators import MAX_SIZE
 
+from . import login_via_view
+
 PASSWORD = 'Str0ngPass!234'
 
 
@@ -63,8 +65,8 @@ class ProfileTests(MediaTestCase):
     def upload_photo(self, user=None):
         client = Client()
         self.assertTrue(
-            client.login(
-                username=(user or self.user).username, password=PASSWORD
+            login_via_view(
+                client, (user or self.user).username, PASSWORD
             )
         )
         response = client.post(
@@ -96,7 +98,12 @@ class ProfileTests(MediaTestCase):
             self.assertEqual(image.mode, 'RGB')
 
         response = self.client.get(reverse('home'))
-        self.assertContains(response, self.user.profile.photo.url)
+        self.assertContains(
+            response,
+            reverse(
+                'protected_file', args=['profile', self.user.profile.pk]
+            ),
+        )
 
     def test_exe_upload_is_rejected(self):
         self.client.force_login(self.user)

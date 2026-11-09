@@ -6,6 +6,12 @@ from .forms import LoginForm
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('healthz/', views.healthz, name='healthz'),
+    path(
+        'files/<str:kind>/<int:pk>/',
+        views.protected_file,
+        name='protected_file',
+    ),
     path('privacy/', views.privacy, name='privacy'),
     path('terms/', views.terms, name='terms'),
     path('profile/', views.my_profile, name='my_profile'),

@@ -1,5 +1,7 @@
 import secrets
 from datetime import date, time, timedelta
+from pathlib import Path
+from uuid import uuid4
 
 from django.conf import settings
 from django.db import models
@@ -9,6 +11,32 @@ from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
 from .validators import validate_image
+
+def _private_upload_to(prefix, filename):
+    """Store private uploads under a random UUID filename."""
+    extension = Path(filename).suffix.lower()
+    return f'{prefix}/{uuid4().hex}{extension}'
+
+
+def profile_photo_upload_to(instance, filename):
+    return _private_upload_to('profiles', filename)
+
+
+def housing_photo_upload_to(instance, filename):
+    return _private_upload_to('interviews/housing', filename)
+
+
+def interview_photo_upload_to(instance, filename):
+    return _private_upload_to('interviews/results', filename)
+
+
+def follow_up_photo_upload_to(instance, filename):
+    return _private_upload_to('follow_ups', filename)
+
+
+def follow_up_evaluation_photo_upload_to(instance, filename):
+    return _private_upload_to('follow_up_evaluations', filename)
+
 
 DEFAULT_CONTRACT_TERMS = (
     'ผู้รับอุปการะตกลงดูแลสุนัขที่รับอุปการะให้ได้รับอาหาร น้ำสะอาด ที่อยู่อาศัย '
@@ -37,7 +65,7 @@ class Profile(models.Model):
     address = models.TextField('ที่อยู่', blank=True)
     photo = models.ImageField(
         'รูปโปรไฟล์',
-        upload_to='profiles/',
+        upload_to=profile_photo_upload_to,
         blank=True,
         validators=[validate_image],
     )
@@ -315,7 +343,7 @@ class HousingPhoto(models.Model):
     )
     image = models.ImageField(
         'รูปถ่ายที่อยู่อาศัย',
-        upload_to='interviews/housing/',
+        upload_to=housing_photo_upload_to,
         validators=[validate_image],
     )
     uploaded_at = models.DateTimeField('อัปโหลดเมื่อ', auto_now_add=True)
@@ -374,7 +402,7 @@ class InterviewPhoto(models.Model):
     )
     image = models.ImageField(
         'รูปภาพการสัมภาษณ์',
-        upload_to='interviews/results/',
+        upload_to=interview_photo_upload_to,
         validators=[validate_image],
     )
     uploaded_at = models.DateTimeField('อัปโหลดเมื่อ', auto_now_add=True)
@@ -543,7 +571,7 @@ class FollowUpPhoto(models.Model):
     )
     image = models.ImageField(
         'รูปถ่ายที่อยู่อาศัย',
-        upload_to='follow_ups/',
+        upload_to=follow_up_photo_upload_to,
         validators=[validate_image],
     )
     uploaded_at = models.DateTimeField('อัปโหลดเมื่อ', auto_now_add=True)
@@ -647,7 +675,7 @@ class FollowUpEvaluationPhoto(models.Model):
     )
     image = models.ImageField(
         'รูปภาพประกอบการประเมิน',
-        upload_to='follow_up_evaluations/',
+        upload_to=follow_up_evaluation_photo_upload_to,
         validators=[validate_image],
     )
     uploaded_at = models.DateTimeField('อัปโหลดเมื่อ', auto_now_add=True)
