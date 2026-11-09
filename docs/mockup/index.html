@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StayMatch - หาบ้านที่ใช่ ให้เพื่อนสี่ขา</title>
+    
+    <!-- Google Fonts: Sarabun -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        canvas: '#FAF9F4',
+                        main: '#20201D',
+                        muted: '#77766F',
+                        line: '#E1E0D8',
+                        yellow: {
+                            DEFAULT: '#F2C62E', // Accent yellow
+                            light: '#FEF4D4'
+                        },
+                        pink: {
+                            DEFAULT: '#FAD3E6',
+                            light: '#FCE6F0'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Sarabun', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* View & Tab Transitions */
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* FAQ Accordion Styles */
+        details > summary {
+            list-style: none;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+        details[open] summary ~ * {
+            animation: sweep .3s ease-in-out;
+        }
+        @keyframes sweep {
+            0%    {opacity: 0; transform: translateY(-10px)}
+            100%  {opacity: 1; transform: translateY(0)}
+        }
+        details[open] summary .toggle-icon {
+            transform: rotate(45deg);
+        }
+    </style>
+</head>
+<body class="bg-canvas text-main font-sans antialiased min-h-screen flex flex-col selection:bg-yellow selection:text-main">
+
+    <!-- Global Header -->
+    <header class="w-full px-6 md:px-12 py-5 border-b border-line flex items-center justify-between bg-canvas sticky top-0 z-10">
+        <div class="flex items-center gap-2 text-lg font-bold tracking-tight cursor-pointer" onclick="switchView('view-home')">
+            <span>🏡</span>
+            <span>StayMatch</span>
+        </div>
+        <nav class="flex items-center gap-6 text-sm">
+            <button id="nav-home" onclick="switchView('view-home')" class="font-bold text-main hover:text-main transition-colors focus:outline-none">
+                หน้าหลัก
+            </button>
+            <button id="nav-adopter" onclick="switchView('view-adopter')" class="text-muted hover:text-main transition-colors focus:outline-none">
+                ค้นหาน้องหมา
+            </button>
+            <button id="nav-staff" onclick="switchView('view-staff')" class="text-muted hover:text-main transition-colors focus:outline-none">
+                สำหรับเจ้าหน้าที่
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 w-full">
+
+        <!-- ==================== VIEW: HOME ==================== -->
+        <div id="view-home" class="fade-in block w-full max-w-7xl mx-auto px-4 md:px-8">
+            
+            <!-- Hero Section -->
+            <section class="pt-16 pb-12 md:pt-24 md:pb-16 flex flex-col items-center text-center">
+                <!-- Avatar strip -->
+                <div class="flex justify-center gap-3 mb-8">
+                    <div class="w-12 h-12 rounded-xl bg-yellow-light flex items-center justify-center text-2xl border border-yellow">🐶</div>
+                    <div class="w-12 h-12 rounded-xl bg-pink-light flex items-center justify-center text-2xl border border-pink">🐕</div>
+                    <div class="w-12 h-12 rounded-xl bg-yellow-light flex items-center justify-center text-2xl border border-yellow">🐩</div>
+                    <div class="w-12 h-12 rounded-xl bg-pink-light flex items-center justify-center text-2xl border border-pink">🦮</div>
+                    <div class="w-12 h-12 rounded-xl bg-yellow-light flex items-center justify-center text-2xl border border-yellow">🐕‍🦺</div>
+                </div>
+                <!-- Headline -->
+                <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6 max-w-4xl mx-auto">
+                    หาบ้านที่ใช่ ให้เพื่อนสี่ขา
+                </h1>
+                <p class="text-lg md:text-xl text-muted max-w-2xl mx-auto leading-relaxed">
+                    ระบบคัดกรองและจับคู่สุนัขจรจัดกับเจ้าของที่เหมาะสม เพื่อให้มั่นใจว่าน้องหมาทุกตัวจะได้อยู่ในครอบครัวที่อบอุ่นและพร้อมดูแลตลอดไป
+                </p>
+            </section>
+
+            <!-- Feature Media Panel -->
+            <section class="w-full max-w-5xl mx-auto mb-24 md:mb-32 px-2">
+                <div class="relative w-full aspect-video md:h-[500px] md:aspect-auto rounded-3xl border border-line bg-gradient-to-br from-yellow-light to-pink-light flex items-center justify-center overflow-hidden">
+                    <button class="absolute top-6 left-6 flex items-center gap-2 border border-main/20 bg-canvas/50 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium hover:bg-canvas transition-colors">
+                        <span class="text-xs">▶</span> Play
+                    </button>
+                    <div class="text-[120px] md:text-[160px] transform hover:scale-110 transition-transform duration-500 cursor-default">
+                        🐕
+                    </div>
+                </div>
+            </section>
+
+            <!-- Role/Use-case Section -->
+            <section class="max-w-4xl mx-auto mb-20 md:mb-32 px-4 md:px-0">
+                <h2 class="text-2xl md:text-3xl font-bold mb-3">เริ่มต้นใช้งานง่ายๆ</h2>
+                <p class="text-muted mb-10 text-lg">ออกแบบมาเพื่อช่วยให้การรับเลี้ยงเป็นเรื่องโปร่งใสและตรงใจทั้งสองฝ่าย</p>
+
+                <div class="flex flex-col">
+                    <div class="group grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4 md:gap-12 py-8 border-t border-line items-start md:items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-yellow flex items-center justify-center text-xl shrink-0">📱</div>
+                            <h3 class="font-bold text-lg">สร้างโปรไฟล์ผู้รับเลี้ยง</h3>
+                        </div>
+                        <p class="text-muted leading-relaxed">กรอกข้อมูลพื้นฐาน ไลฟ์สไตล์ และความพร้อมของคุณ เพื่อให้ระบบมีข้อมูลตั้งต้นในการประเมินความเหมาะสมเบื้องต้น</p>
+                    </div>
+                    <div class="group grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4 md:gap-12 py-8 border-t border-line items-start md:items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-pink flex items-center justify-center text-xl shrink-0">📝</div>
+                            <h3 class="font-bold text-lg">ระบบจับคู่และคัดกรอง</h3>
+                        </div>
+                        <p class="text-muted leading-relaxed">ระบบจะวิเคราะห์ความเข้ากันได้ระหว่างความต้องการของคุณกับอุปนิสัยและเงื่อนไขการเลี้ยงดูของสุนัขแต่ละตัว</p>
+                    </div>
+                    <div class="group grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4 md:gap-12 py-8 border-t border-line items-start md:items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-yellow flex items-center justify-center text-xl shrink-0">🤝</div>
+                            <h3 class="font-bold text-lg">นัดหมายสัมภาษณ์</h3>
+                        </div>
+                        <p class="text-muted leading-relaxed">เมื่อพบสุนัขที่ถูกใจ สามารถส่งคำขอเพื่อนัดหมายพูดคุยและสัมภาษณ์กับทางศูนย์พักพิงได้โดยตรงผ่านแพลตฟอร์ม</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ Section -->
+            <section class="max-w-3xl mx-auto mb-24 px-4 md:px-0">
+                <h2 class="text-2xl font-bold mb-8">คำถามที่พบบ่อย</h2>
+                <div class="flex flex-col">
+                    <details class="group border-t border-line">
+                        <summary class="flex justify-between items-center font-medium cursor-pointer py-5 pr-2 focus:outline-none">
+                            <span>จำเป็นต้องเสียค่าใช้จ่ายในการรับเลี้ยงหรือไม่?</span>
+                            <span class="toggle-icon text-muted text-xl transition-transform duration-200 leading-none">+</span>
+                        </summary>
+                        <div class="text-muted pb-6 pr-8 text-sm md:text-base leading-relaxed">
+                            StayMatch ให้บริการฟรีสำหรับผู้ใช้งานและศูนย์พักพิง อย่างไรก็ตาม บางศูนย์อาจมีค่าธรรมเนียมการรับเลี้ยงเบื้องต้น ซึ่งจะระบุไว้ชัดเจนในโปรไฟล์
+                        </div>
+                    </details>
+                    <details class="group border-t border-line">
+                        <summary class="flex justify-between items-center font-medium cursor-pointer py-5 pr-2 focus:outline-none">
+                            <span>จะรู้ได้อย่างไรว่าข้อมูลน้องหมาเป็นปัจจุบัน?</span>
+                            <span class="toggle-icon text-muted text-xl transition-transform duration-200 leading-none">+</span>
+                        </summary>
+                        <div class="text-muted pb-6 pr-8 text-sm md:text-base leading-relaxed">
+                            ระบบซิงค์ข้อมูลสถานะของสุนัขแบบเรียลไทม์กับศูนย์พักพิง หากน้องหมาได้บ้านแล้ว ระบบจะปรับสถานะทันที
+                        </div>
+                    </details>
+                    <details class="group border-t border-line">
+                        <summary class="flex justify-between items-center font-medium cursor-pointer py-5 pr-2 focus:outline-none">
+                            <span>หากอยู่หอพักหรือคอนโด สามารถรับเลี้ยงได้ไหม?</span>
+                            <span class="toggle-icon text-muted text-xl transition-transform duration-200 leading-none">+</span>
+                        </summary>
+                        <div class="text-muted pb-6 pr-8 text-sm md:text-base leading-relaxed">
+                            ทำได้ครับ ระบบคัดกรองจะจับคู่กับน้องหมาสายพันธุ์เล็กและสอดคล้องกับกฎระเบียบที่พักของคุณ
+                        </div>
+                    </details>
+                    <details class="group border-t border-line">
+                        <summary class="flex justify-between items-center font-medium cursor-pointer py-5 pr-2 focus:outline-none">
+                            <span>ใช้เวลาพิจารณาการรับเลี้ยงนานแค่ไหน?</span>
+                            <span class="toggle-icon text-muted text-xl transition-transform duration-200 leading-none">+</span>
+                        </summary>
+                        <div class="text-muted pb-6 pr-8 text-sm md:text-base leading-relaxed">
+                            ทางศูนย์พักพิงจะติดต่อกลับเพื่อนัดสัมภาษณ์ภายใน 1-3 วันทำการ หลังจากส่งคำขอรับเลี้ยง
+                        </div>
+                    </details>
+                </div>
+            </section>
+        </div>
+
+        <!-- ==================== VIEW: ADOPTER ==================== -->
+        <div id="view-adopter" class="hidden fade-in w-full max-w-7xl mx-auto px-4 md:px-8 py-10">
+            <div class="mb-10 text-center max-w-2xl mx-auto">
+                <h1 class="text-3xl md:text-4xl font-bold mb-3">ค้นหาน้องหมาที่รอคอยบ้าน</h1>
+                <p class="text-muted">เลือกดูน้องหมาที่พร้อมสำหรับการรับเลี้ยง และกรอกข้อมูลเพื่อประเมินความพร้อมของคุณ</p>
+                <div class="mt-8 flex max-w-md mx-auto relative">
+                    <input type="text" placeholder="ค้นหาด้วยชื่อ, สายพันธุ์, หรือเพศ..." class="w-full bg-transparent border border-line rounded-full pl-5 pr-12 py-3 focus:outline-none focus:border-main text-main placeholder-muted text-sm">
+                    <button class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-line/30 rounded-full hover:bg-line/60 transition-colors">🔍</button>
+                </div>
+            </div>
+
+            <!-- Dog Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Card 1 -->
+                <div class="border border-line rounded-3xl p-5 hover:border-main transition-colors group flex flex-col h-full bg-canvas">
+                    <div class="w-full aspect-square rounded-2xl bg-yellow-light flex items-center justify-center text-6xl mb-5 group-hover:scale-[1.02] transition-transform">🐕</div>
+                    <div class="mb-5 flex-1">
+                        <h3 class="font-bold text-xl">โบ้ (Bo)</h3>
+                        <p class="text-sm text-muted mt-1">พันธุ์ทาง · เพศผู้ · 2 ปี</p>
+                    </div>
+                    <button onclick="openAdoptModal('โบ้ (Bo)')" class="w-full py-2.5 rounded-full border border-line text-main text-sm font-medium hover:bg-main hover:text-canvas transition-colors">สมัครรับเลี้ยง</button>
+                </div>
+                <!-- Card 2 -->
+                <div class="border border-line rounded-3xl p-5 hover:border-main transition-colors group flex flex-col h-full bg-canvas">
+                    <div class="w-full aspect-square rounded-2xl bg-pink-light flex items-center justify-center text-6xl mb-5 group-hover:scale-[1.02] transition-transform">🐩</div>
+                    <div class="mb-5 flex-1">
+                        <h3 class="font-bold text-xl">ลูน่า (Luna)</h3>
+                        <p class="text-sm text-muted mt-1">พุดเดิ้ลผสม · เพศเมีย · 1 ปี</p>
+                    </div>
+                    <button onclick="openAdoptModal('ลูน่า (Luna)')" class="w-full py-2.5 rounded-full border border-line text-main text-sm font-medium hover:bg-main hover:text-canvas transition-colors">สมัครรับเลี้ยง</button>
+                </div>
+                 <!-- Card 3 -->
+                 <div class="border border-line rounded-3xl p-5 hover:border-main transition-colors group flex flex-col h-full bg-canvas">
+                    <div class="w-full aspect-square rounded-2xl bg-line/30 flex items-center justify-center text-6xl mb-5 group-hover:scale-[1.02] transition-transform">🦮</div>
+                    <div class="mb-5 flex-1">
+                        <h3 class="font-bold text-xl">น้ำตาล</h3>
+                        <p class="text-sm text-muted mt-1">โกลเด้นผสม · เพศเมีย · 4 เดือน</p>
+                    </div>
+                    <button onclick="openAdoptModal('น้ำตาล')" class="w-full py-2.5 rounded-full border border-line text-main text-sm font-medium hover:bg-main hover:text-canvas transition-colors">สมัครรับเลี้ยง</button>
+                </div>
+                 <!-- Card 4 -->
+                 <div class="border border-line rounded-3xl p-5 hover:border-main transition-colors group flex flex-col h-full bg-canvas">
+                    <div class="w-full aspect-square rounded-2xl bg-yellow-light flex items-center justify-center text-6xl mb-5 group-hover:scale-[1.02] transition-transform">🐕‍🦺</div>
+                    <div class="mb-5 flex-1">
+                        <h3 class="font-bold text-xl">ดำ</h3>
+                        <p class="text-sm text-muted mt-1">ลาบราดอร์ผสม · เพศผู้ · 3 ปี</p>
+                    </div>
+                    <button onclick="openAdoptModal('ดำ')" class="w-full py-2.5 rounded-full border border-line text-main text-sm font-medium hover:bg-main hover:text-canvas transition-colors">สมัครรับเลี้ยง</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW: STAFF ==================== -->
+        <div id="view-staff" class="hidden fade-in w-full max-w-6xl mx-auto px-4 md:px-8 py-10">
+            
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold">ระบบจัดการศูนย์พักพิง</h1>
+                <p class="text-muted mt-2">ยินดีต้อนรับ, แอดมินใจดี</p>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="flex gap-6 border-b border-line mb-10">
+                <button onclick="switchTab('tab-dogs')" id="btn-tab-dogs" class="pb-3 text-lg font-bold border-b-2 border-main text-main transition-colors focus:outline-none">
+                    จัดการข้อมูลสุนัข
+                </button>
+                <button onclick="switchTab('tab-requests')" id="btn-tab-requests" class="pb-3 text-lg font-bold border-b-2 border-transparent text-muted hover:text-main transition-colors focus:outline-none">
+                    คำขอรับเลี้ยง
+                </button>
+            </div>
+
+            <!-- TAB CONTENT: Manage Dogs -->
+            <section id="tab-dogs" class="block fade-in">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold">ข้อมูลสุนัขในระบบ</h2>
+                        <p class="text-muted text-sm mt-1">รายชื่อสุนัขจรจัดที่รอการพิจารณาหรือกำลังหาบ้าน</p>
+                    </div>
+                    <button onclick="openModal('addDogModal')" class="bg-main text-canvas px-5 py-2.5 rounded-full text-sm font-medium hover:bg-main/90 transition-colors flex items-center gap-2 shadow-sm">
+                        <span>➕</span> เพิ่มข้อมูลสุนัข
+                    </button>
+                </div>
+
+                <div class="flex flex-col border-t border-line">
+                    <!-- Dog 1 -->
+                    <div class="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-4 md:gap-8 py-5 border-b border-line items-center">
+                        <div class="w-14 h-14 rounded-2xl bg-yellow-light border border-yellow flex items-center justify-center text-3xl shrink-0">🐕</div>
+                        <div>
+                            <h3 class="font-bold text-lg">โบ้ (Bo)</h3>
+                            <p class="text-muted text-sm">เพศผู้ · อายุ 2 ปี · พันธุ์ทาง · ร่าเริง เข้ากับคนง่าย</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-medium bg-canvas border border-line px-3 py-1 rounded-full text-muted">รอคิวสัมภาษณ์</span>
+                            <button onclick="showActionMessage('เปิดหน้าแก้ไขข้อมูลของ โบ้')" class="text-sm font-medium text-main hover:text-muted underline decoration-line underline-offset-4">แก้ไขข้อมูล</button>
+                        </div>
+                    </div>
+                    <!-- Dog 2 -->
+                    <div class="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-4 md:gap-8 py-5 border-b border-line items-center">
+                        <div class="w-14 h-14 rounded-2xl bg-pink-light border border-pink flex items-center justify-center text-3xl shrink-0">🐩</div>
+                        <div>
+                            <h3 class="font-bold text-lg">ลูน่า (Luna)</h3>
+                            <p class="text-muted text-sm">เพศเมีย · อายุ 1 ปี · พุดเดิ้ลผสม · ขี้อาย ต้องการความอบอุ่น</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-medium bg-yellow text-main px-3 py-1 rounded-full">ว่าง / หาบ้าน</span>
+                            <button onclick="showActionMessage('เปิดหน้าแก้ไขข้อมูลของ ลูน่า')" class="text-sm font-medium text-main hover:text-muted underline decoration-line underline-offset-4">แก้ไขข้อมูล</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB CONTENT: Adoption Requests -->
+            <section id="tab-requests" class="hidden fade-in">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold">คำขอรับเลี้ยง (Applications)</h2>
+                    <p class="text-muted text-sm mt-1">ตรวจสอบและดำเนินการกับคำขอรับเลี้ยงล่าสุด</p>
+                </div>
+
+                <div class="flex flex-col border-t border-line">
+                    <!-- Request 1 -->
+                    <div class="flex flex-col xl:flex-row xl:items-center justify-between py-6 border-b border-line gap-6">
+                        <div class="flex gap-4 items-start">
+                            <div class="w-12 h-12 rounded-full bg-line/50 flex items-center justify-center text-xl">👤</div>
+                            <div>
+                                <h3 class="font-bold">คุณสมชาย ใจดี</h3>
+                                <p class="text-muted text-sm mt-0.5">ต้องการรับเลี้ยง: <strong class="text-main">โบ้ (Bo)</strong></p>
+                                <p class="text-xs text-muted mt-2">ยื่นเมื่อ: 2 ชั่วโมงที่แล้ว · สถานะ: รอตรวจสอบ</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="showActionMessage('กำลังตรวจสอบโปรไฟล์ของคุณสมชาย')" class="bg-canvas border border-line text-main px-4 py-2 rounded-full text-xs font-medium hover:bg-line/30 transition-colors">
+                                🔍 ตรวจสอบ
+                            </button>
+                            <button onclick="showActionMessage('นัดหมายสัมภาษณ์เรียบร้อยแล้ว')" class="bg-yellow text-main px-4 py-2 rounded-full text-xs font-medium hover:bg-yellow/80 transition-colors">
+                                📅 นัดสัมภาษณ์
+                            </button>
+                            <button onclick="showActionMessage('ร่างสัญญาการรับเลี้ยงเรียบร้อย')" class="bg-pink text-main px-4 py-2 rounded-full text-xs font-medium hover:bg-pink/80 transition-colors">
+                                📝 สร้างสัญญา
+                            </button>
+                            <button onclick="showActionMessage('ยืนยันการรับเลี้ยง! ยินดีด้วยกับน้องโบ้')" class="bg-main text-canvas px-4 py-2 rounded-full text-xs font-medium hover:bg-main/90 transition-colors">
+                                ✅ อนุมัติ
+                            </button>
+                            <button onclick="showActionMessage('ปฏิเสธคำขอรับเลี้ยงแล้ว')" class="text-muted hover:text-main px-2 py-2 text-xs font-medium underline decoration-line underline-offset-4">
+                                ปฏิเสธ
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Request 2 -->
+                    <div class="flex flex-col xl:flex-row xl:items-center justify-between py-6 border-b border-line gap-6">
+                        <div class="flex gap-4 items-start">
+                            <div class="w-12 h-12 rounded-full bg-line/50 flex items-center justify-center text-xl">👩</div>
+                            <div>
+                                <h3 class="font-bold">คุณมณี รักสัตว์</h3>
+                                <p class="text-muted text-sm mt-0.5">ต้องการรับเลี้ยง: <strong class="text-main">ลูน่า (Luna)</strong></p>
+                                <p class="text-xs text-muted mt-2">ยื่นเมื่อ: 1 วันที่แล้ว · สถานะ: สัมภาษณ์ผ่านแล้ว</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="showActionMessage('ร่างสัญญาการรับเลี้ยงเรียบร้อย')" class="bg-pink text-main px-4 py-2 rounded-full text-xs font-medium hover:bg-pink/80 transition-colors">
+                                📝 สร้างสัญญา
+                            </button>
+                            <button onclick="showActionMessage('ยืนยันการรับเลี้ยง! ยินดีด้วยกับน้องลูน่า')" class="bg-main text-canvas px-4 py-2 rounded-full text-xs font-medium hover:bg-main/90 transition-colors">
+                                ✅ อนุมัติ
+                            </button>
+                            <button onclick="showActionMessage('ปฏิเสธคำขอรับเลี้ยงแล้ว')" class="text-muted hover:text-main px-2 py-2 text-xs font-medium underline decoration-line underline-offset-4">
+                                ปฏิเสธ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- Global Footer -->
+    <footer class="border-t border-line w-full mt-auto">
+        <div class="max-w-7xl mx-auto px-6 md:px-12 py-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted">
+            <div>© 2024 StayMatch Platform. All rights reserved.</div>
+            <div class="flex gap-6">
+                <a href="#" class="hover:text-main transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-main transition-colors">Terms of Service</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- Add Dog Modal -->
+    <div id="addDogModal" class="fixed inset-0 bg-main/30 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-canvas border border-line w-full max-w-lg rounded-3xl p-8 shadow-2xl transform scale-95 transition-transform duration-300">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold">เพิ่มข้อมูลสุนัข</h3>
+                <button onclick="closeModal('addDogModal')" class="text-muted hover:text-main text-2xl leading-none">&times;</button>
+            </div>
+            
+            <form onsubmit="event.preventDefault(); showActionMessage('บันทึกข้อมูลสุนัขใหม่เรียบร้อยแล้ว'); closeModal('addDogModal');" class="flex flex-col gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-muted mb-1">ชื่อสุนัข</label>
+                    <input type="text" required class="w-full bg-transparent border border-line rounded-xl px-4 py-2 focus:outline-none focus:border-main text-main placeholder-line" placeholder="เช่น ด่าง, น้ำตาล">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-muted mb-1">เพศ</label>
+                        <select class="w-full bg-transparent border border-line rounded-xl px-4 py-2 focus:outline-none focus:border-main text-main">
+                            <option>ผู้</option>
+                            <option>เมีย</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-muted mb-1">อายุโดยประมาณ</label>
+                        <input type="text" class="w-full bg-transparent border border-line rounded-xl px-4 py-2 focus:outline-none focus:border-main text-main" placeholder="เช่น 2 เดือน, 3 ปี">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-muted mb-1">สัญลักษณ์ (Emoji)</label>
+                    <input type="text" class="w-full bg-transparent border border-line rounded-xl px-4 py-2 focus:outline-none focus:border-main text-main" placeholder="เลือก Emoji 1 ตัว เช่น 🐶">
+                </div>
+                <div class="flex justify-end gap-3 mt-4">
+                    <button type="button" onclick="closeModal('addDogModal')" class="px-5 py-2.5 rounded-full text-sm font-medium border border-line hover:bg-line/30 transition-colors">ยกเลิก</button>
+                    <button type="submit" class="bg-main text-canvas px-5 py-2.5 rounded-full text-sm font-medium hover:bg-main/90 transition-colors">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Adoption Form Modal -->
+    <div id="adoptModal" class="fixed inset-0 bg-main/30 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-canvas border border-line w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 md:p-8 shadow-2xl transform scale-95 transition-transform duration-300">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold">สมัครรับเลี้ยง: <span id="adopt-dog-name" class="text-yellow-600">น้องหมา</span></h3>
+                <button onclick="closeModal('adoptModal')" class="text-muted hover:text-main text-2xl leading-none">&times;</button>
+            </div>
+            
+            <form onsubmit="event.preventDefault(); showActionMessage('ส่งคำขอรับเลี้ยงเรียบร้อยแล้ว เจ้าหน้าที่จะติดต่อกลับเร็วๆ นี้'); closeModal('adoptModal');" class="flex flex-col gap-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-muted mb-1">ชื่อ-นามสกุล</label>
+                        <input type="text" required class="w-full bg-transparent border border-line rounded-xl px-4 py-2 focus:outline-none focus:border-main text-main placeholder-line" placeholder="ชื่อจริง นามสกุล">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-muted mb-1">เบอร์โทรศัพท์</label>
+                        <input type="tel" required class="w-full bg-transparent border border-line rounded-xl px-4 py-2 focus:outline-none focus:border-main text-main placeholder-line" placeholder="08X-XXX-XXXX">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-muted mb-1">เหตุผลที่ต้องการรับเลี้ยง</label>
+                    <textarea required rows="2" class="w-full bg-transparent border border-line rounded-xl px-4 py-2 focus:outline-none focus:border-main text-main resize-none placeholder-line" placeholder="เล่าถึงความตั้งใจของคุณ..."></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-muted mb-1">ปักหมุดบ้าน / ที่พักอาศัย</label>
+                    <p class="text-xs text-muted mb-2">คลิกบนพื้นที่ด้านล่างเพื่อจำลองการปักหมุดบ้าน ใช้ประกอบการพิจารณาสภาพแวดล้อม</p>
+                    <!-- Mock Map Container -->
+                    <div id="mock-map" class="relative w-full h-48 bg-canvas border border-line rounded-xl overflow-hidden cursor-crosshair hover:border-main transition-colors" onclick="pinMap(event)">
+                        <!-- Grid background to look like a map area -->
+                        <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 2px 2px, #20201D 1px, transparent 0); background-size: 20px 20px;"></div>
+                        <!-- Empty placeholder text -->
+                        <div id="map-placeholder" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span class="text-sm text-muted bg-canvas/80 px-4 py-1.5 rounded-full border border-line backdrop-blur-sm">คลิกบนแผนที่เพื่อปักหมุด 📍</span>
+                        </div>
+                        <!-- Interactive Pin -->
+                        <div id="map-pin" class="absolute hidden text-3xl pointer-events-none" style="transform: translate(-50%, -100%); filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">📍</div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-line">
+                    <button type="button" onclick="closeModal('adoptModal')" class="px-5 py-2.5 rounded-full text-sm font-medium border border-line hover:bg-line/30 transition-colors">ยกเลิก</button>
+                    <button type="submit" class="bg-main text-canvas px-5 py-2.5 rounded-full text-sm font-medium hover:bg-main/90 transition-colors">ส่งคำขอรับเลี้ยง</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Generic Message Modal -->
+    <div id="messageModal" class="fixed inset-0 bg-main/30 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-canvas border border-line w-full max-w-sm rounded-3xl p-6 text-center shadow-xl transform scale-95 transition-transform duration-300">
+            <div class="w-16 h-16 bg-yellow mx-auto rounded-full flex items-center justify-center text-3xl mb-4 border border-main/10">🔔</div>
+            <h3 class="text-xl font-bold mb-2">แจ้งเตือนระบบ</h3>
+            <p id="messageModalText" class="text-muted text-sm mb-6">ดำเนินการสำเร็จ</p>
+            <button onclick="closeModal('messageModal')" class="bg-main text-canvas px-8 py-2.5 rounded-full text-sm font-medium hover:bg-main/90 transition-colors w-full">
+                ตกลง
+            </button>
+        </div>
+    </div>
+
+    <!-- Application Logic (SPA Scripts) -->
+    <script>
+        // --- 1. SPA View Switching Logic ---
+        function switchView(viewId) {
+            // Hide all views
+            document.getElementById('view-home').classList.remove('block');
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-adopter').classList.remove('block');
+            document.getElementById('view-adopter').classList.add('hidden');
+            document.getElementById('view-staff').classList.remove('block');
+            document.getElementById('view-staff').classList.add('hidden');
+            
+            // Show targeted view
+            const targetView = document.getElementById(viewId);
+            targetView.classList.remove('hidden');
+            targetView.classList.add('block');
+            
+            // Reset animation by triggering reflow
+            targetView.classList.remove('fade-in');
+            void targetView.offsetWidth; 
+            targetView.classList.add('fade-in');
+
+            // Update Header Navigation Active States
+            const navHome = document.getElementById('nav-home');
+            const navAdopter = document.getElementById('nav-adopter');
+            const navStaff = document.getElementById('nav-staff');
+
+            // Reset all to muted
+            [navHome, navAdopter, navStaff].forEach(nav => {
+                nav.classList.replace('text-main', 'text-muted');
+                nav.classList.remove('font-bold');
+            });
+
+            // Set active to main
+            let activeNav;
+            if (viewId === 'view-home') activeNav = navHome;
+            else if (viewId === 'view-adopter') activeNav = navAdopter;
+            else if (viewId === 'view-staff') activeNav = navStaff;
+
+            if(activeNav) {
+                activeNav.classList.replace('text-muted', 'text-main');
+                activeNav.classList.add('font-bold');
+            }
+            
+            // Scroll to top when switching views
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- 2. Staff Dashboard Tab Switching Logic ---
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.getElementById('tab-dogs').classList.add('hidden');
+            document.getElementById('tab-dogs').classList.remove('block');
+            document.getElementById('tab-requests').classList.add('hidden');
+            document.getElementById('tab-requests').classList.remove('block');
+            
+            // Reset tab button styling
+            const btnDogs = document.getElementById('btn-tab-dogs');
+            const btnRequests = document.getElementById('btn-tab-requests');
+            
+            btnDogs.className = "pb-3 text-lg font-bold border-b-2 border-transparent text-muted hover:text-main transition-colors focus:outline-none";
+            btnRequests.className = "pb-3 text-lg font-bold border-b-2 border-transparent text-muted hover:text-main transition-colors focus:outline-none";
+            
+            // Show active tab
+            const targetTab = document.getElementById(tabId);
+            targetTab.classList.remove('hidden');
+            targetTab.classList.add('block');
+            
+            // Update active button styling
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.className = "pb-3 text-lg font-bold border-b-2 border-main text-main transition-colors focus:outline-none";
+        }
+
+        // --- 3. Custom Modal Logic ---
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('hidden');
+            // Slight delay to allow display:block to apply before animating opacity
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.children[0].classList.remove('scale-95');
+                modal.children[0].classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('opacity-0');
+            modal.children[0].classList.remove('scale-100');
+            modal.children[0].classList.add('scale-95');
+            // Wait for transition to finish before setting display to hidden
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function showActionMessage(message) {
+            document.getElementById('messageModalText').innerText = message;
+            openModal('messageModal');
+        }
+
+        // --- 4. Adopter Modal & Map Logic ---
+        function openAdoptModal(dogName) {
+            document.getElementById('adopt-dog-name').innerText = dogName;
+            
+            // Reset Map Pin
+            document.getElementById('map-pin').classList.add('hidden');
+            document.getElementById('map-placeholder').classList.remove('hidden');
+            
+            openModal('adoptModal');
+        }
+
+        function pinMap(e) {
+            const map = document.getElementById('mock-map');
+            const pin = document.getElementById('map-pin');
+            const placeholder = document.getElementById('map-placeholder');
+            
+            // Calculate relative click position inside the div
+            const rect = map.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Position the pin and show it
+            pin.style.left = x + 'px';
+            pin.style.top = y + 'px';
+            pin.classList.remove('hidden');
+            
+            // Hide the placeholder instruction text
+            placeholder.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
