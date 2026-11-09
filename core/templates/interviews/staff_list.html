@@ -92,9 +92,8 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
                             </div>
                             <div class="modal-body">
-                                <label class="form-label" for="reject-reason-{{ interview.pk }}">{{ reject_form.reason.label }}</label>
-                                {{ reject_form.reason }}
-                                {% for error in reject_form.reason.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                {% include 'includes/form_required_note.html' %}
+                                {% include 'includes/form_field.html' with field=reject_form.reason %}
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>

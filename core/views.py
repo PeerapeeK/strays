@@ -27,6 +27,7 @@ from .forms import (
     InterviewBookingForm,
     InterviewRejectForm,
     InterviewResultForm,
+    ProfileForm,
     RegistrationForm,
     StaffCreateForm,
     UserEditForm,
@@ -69,6 +70,24 @@ def home(request):
         'show_dog_strip': len(dogs) >= 3,
     }
     return render(request, 'home.html', context)
+
+
+@login_required
+def my_profile(request):
+    profile = request.user.profile
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'บันทึกโปรไฟล์สำเร็จ')
+            return redirect('my_profile')
+    else:
+        form = ProfileForm(instance=profile)
+    return render(
+        request,
+        'users/my_profile.html',
+        {'form': form, 'profile': profile},
+    )
 
 
 def register(request):
@@ -161,8 +180,13 @@ def _user_action_block_reason(target, request):
 def user_edit(request, pk):
     target = get_object_or_404(User, pk=pk)
     old_username = target.username
+    allow_remove_photo = target.pk != request.user.pk
     if request.method == 'POST':
-        form = UserEditForm(request.POST, instance=target)
+        form = UserEditForm(
+            request.POST,
+            instance=target,
+            allow_remove_photo=allow_remove_photo,
+        )
         if form.is_valid():
             with transaction.atomic():
                 form.save()
@@ -182,7 +206,10 @@ def user_edit(request, pk):
                 messages.success(request, 'บันทึกข้อมูลผู้ใช้สำเร็จ')
             return redirect('user_list')
     else:
-        form = UserEditForm(instance=target)
+        form = UserEditForm(
+            instance=target,
+            allow_remove_photo=allow_remove_photo,
+        )
 
     linked_records = user_linked_records(target)
     is_self = target.pk == request.user.pk

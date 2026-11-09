@@ -30,6 +30,7 @@
             <h2 class="form-section-title" id="booking-step-1">
                 <span class="form-section-num">01</span> ข้อมูลส่วนตัว
             </h2>
+            {% include 'includes/form_required_note.html' %}
             {% include 'includes/form_field.html' with field=form.full_name %}
             {% include 'includes/form_field.html' with field=form.phone %}
             {% include 'includes/form_field.html' with field=form.address %}
@@ -59,29 +60,13 @@
             </h2>
             {% include 'includes/form_field.html' with field=form.scheduled_at %}
 
-            <div class="mb-3">
-                <label class="form-label" for="{{ form.housing_photos.id_for_label }}">
-                    {{ form.housing_photos.label }} <span class="text-danger">*</span>
-                </label>
-                {{ form.housing_photos }}
-                {% if form.housing_photos.help_text %}
-                    <div class="form-text">{{ form.housing_photos.help_text }}</div>
-                {% endif %}
-                <div id="housing-photo-error" class="text-danger small d-none" role="alert"></div>
-                {% for error in form.housing_photos.errors %}
-                    <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
-                <div id="housing-photo-preview" class="photo-preview" aria-live="polite"></div>
-            </div>
+            {% include 'includes/form_field.html' with field=form.housing_photos %}
+            <div id="housing-photo-error" class="text-danger small d-none" role="alert"></div>
+            <div id="housing-photo-preview" class="photo-preview" aria-live="polite"></div>
 
             {% if form.pdpa_consent %}
                 <div class="pdpa-box">
-                    <div class="form-check">
-                        {{ form.pdpa_consent }}
-                        <label class="form-check-label" for="{{ form.pdpa_consent.id_for_label }}">
-                            {{ form.pdpa_consent.label }}
-                        </label>
-                    </div>
+                    {% include 'includes/form_field.html' with field=form.pdpa_consent %}
                     <div class="form-text mt-2">
                         {% if form.pdpa_consent.field.disabled %}
                             คุณได้ให้ความยินยอมตาม PDPA ไว้แล้วระหว่างการสมัครสมาชิก
@@ -89,9 +74,6 @@
                         ข้อมูลส่วนบุคคลและภาพที่อยู่อาศัยจะถูกจัดเก็บเพื่อการคัดกรองผู้รับเลี้ยงเท่านั้น
                         และจะไม่ถูกเปิดเผยต่อบุคคลภายนอก
                     </div>
-                    {% for error in form.pdpa_consent.errors %}
-                        <div class="text-danger small">{{ error }}</div>
-                    {% endfor %}
                 </div>
             {% endif %}
         </section>

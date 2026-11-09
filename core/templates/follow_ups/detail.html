@@ -60,22 +60,11 @@
                 {% endif %}
                 <form method="post" action="{% url 'followup_submit' follow_up.pk %}" enctype="multipart/form-data" novalidate data-loading-form>
                     {% csrf_token %}
+                    {% include 'includes/form_required_note.html' %}
                     {% include 'includes/form_field.html' with field=form.notes %}
-
-                    <div class="mb-3">
-                        <label class="form-label" for="{{ form.photos.id_for_label }}">
-                            {{ form.photos.label }} <span class="text-danger">*</span>
-                        </label>
-                        {{ form.photos }}
-                        {% if form.photos.help_text %}
-                            <div class="form-text">{{ form.photos.help_text }}</div>
-                        {% endif %}
-                        <div id="followup-photo-error" class="text-danger small d-none" role="alert"></div>
-                        {% for error in form.photos.errors %}
-                            <div class="text-danger small">{{ error }}</div>
-                        {% endfor %}
-                        <div id="followup-photo-preview" class="photo-preview" aria-live="polite"></div>
-                    </div>
+                    {% include 'includes/form_field.html' with field=form.photos %}
+                    <div id="followup-photo-error" class="text-danger small d-none" role="alert"></div>
+                    <div id="followup-photo-preview" class="photo-preview" aria-live="polite"></div>
 
                     <button type="submit" class="btn btn-primary" data-loading-text="กำลังส่งข้อมูล...">ส่งข้อมูลการติดตามผล</button>
                 </form>

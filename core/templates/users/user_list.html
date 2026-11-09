@@ -23,7 +23,12 @@
         <tbody>
             {% for row in rows %}
                 <tr>
-                    <td>{{ row.user.username }}</td>
+                    <td>
+                        <span class="d-inline-flex align-items-center gap-2">
+                            {% avatar row.user 32 %}
+                            {{ row.user.username }}
+                        </span>
+                    </td>
                     <td>{{ row.user.profile.full_name|default:'-' }}</td>
                     <td>{{ row.user.profile.phone|default:'-' }}</td>
                     <td>{% if row.role %}<span class="badge bg-secondary">{{ row.role }}</span>{% else %}-{% endif %}</td>

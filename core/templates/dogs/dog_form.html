@@ -25,6 +25,7 @@
             <h2 class="form-section-title" id="dog-step-1">
                 <span class="form-section-num">01</span> ข้อมูลพื้นฐาน
             </h2>
+            {% include 'includes/form_required_note.html' %}
             {% include 'includes/form_field.html' with field=form.name %}
             {% include 'includes/form_field.html' with field=form.breed %}
             {% include 'includes/form_field.html' with field=form.sex %}
@@ -54,24 +55,15 @@
             <h2 class="form-section-title" id="dog-step-4">
                 <span class="form-section-num">04</span> รูปภาพ
             </h2>
-            <div class="mb-3">
-                <label class="form-label" for="{{ form.photo.id_for_label }}">{{ form.photo.label }}</label>
-                {{ form.photo }}
-                {% if form.photo.help_text %}
-                    <div class="form-text">{{ form.photo.help_text }}</div>
+            {% include 'includes/form_field.html' with field=form.photo %}
+            <div id="dog-photo-error" class="text-danger small d-none" role="alert"></div>
+            <div id="dog-photo-preview" class="photo-preview" aria-live="polite">
+                {% if is_edit and dog.photo %}
+                    <figure class="photo-preview-item">
+                        <img src="{{ dog.photo.url }}" alt="รูปปัจจุบันของ {{ dog.name }}">
+                        <figcaption>รูปปัจจุบัน</figcaption>
+                    </figure>
                 {% endif %}
-                <div id="dog-photo-error" class="text-danger small d-none" role="alert"></div>
-                {% for error in form.photo.errors %}
-                    <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
-                <div id="dog-photo-preview" class="photo-preview" aria-live="polite">
-                    {% if is_edit and dog.photo %}
-                        <figure class="photo-preview-item">
-                            <img src="{{ dog.photo.url }}" alt="รูปปัจจุบันของ {{ dog.name }}">
-                            <figcaption>รูปปัจจุบัน</figcaption>
-                        </figure>
-                    {% endif %}
-                </div>
             </div>
         </section>
 

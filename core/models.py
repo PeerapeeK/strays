@@ -35,6 +35,12 @@ class Profile(models.Model):
     full_name = models.CharField('ชื่อ-นามสกุล', max_length=150, blank=True)
     phone = models.CharField('เบอร์โทรศัพท์', max_length=20, blank=True)
     address = models.TextField('ที่อยู่', blank=True)
+    photo = models.ImageField(
+        'รูปโปรไฟล์',
+        upload_to='profiles/',
+        blank=True,
+        validators=[validate_image],
+    )
     pdpa_consent_at = models.DateTimeField('เวลายินยอม PDPA', null=True, blank=True)
     history = HistoricalRecords()
 

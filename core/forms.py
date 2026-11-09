@@ -2,9 +2,11 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import Group, User
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import UploadedFile
 from django.core.validators import RegexValidator
 from django.utils import timezone
 
+from .images import delete_stored_file, process_profile_photo
 from .models import (
     Assessment,
     AdoptionContract,
@@ -13,6 +15,7 @@ from .models import (
     DogHealthRecord,
     HomeVisit,
     InterviewResult,
+    Profile,
     ShelterSettings,
 )
 from .permissions import ADOPTER, STAFF
@@ -46,7 +49,9 @@ class MultipleFileField(forms.FileField):
 
 
 class BootstrapFormMixin:
-    """Apply Bootstrap 5 classes to every widget of a form."""
+    """Apply Bootstrap 5 classes and required markers to every widget."""
+
+    required_css_class = 'required'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -64,6 +69,12 @@ class BootstrapFormMixin:
             widget.attrs['class'] = f'{existing} {css}'.strip()
             if widget.__class__.__name__ == 'Textarea':
                 widget.attrs.setdefault('rows', 3)
+            if field.required:
+                widget.attrs['required'] = 'required'
+                widget.attrs['aria-required'] = 'true'
+            else:
+                widget.attrs.pop('required', None)
+                widget.attrs.pop('aria-required', None)
 
     def full_clean(self):
         super().full_clean()
@@ -83,7 +94,9 @@ class LoginForm(BootstrapFormMixin, AuthenticationForm):
 class RegistrationForm(BootstrapFormMixin, UserCreationForm):
     full_name = forms.CharField(label='ชื่อ-นามสกุล', max_length=150)
     phone = forms.CharField(label='เบอร์โทรศัพท์', max_length=20)
-    address = forms.CharField(label='ที่อยู่', widget=forms.Textarea)
+    address = forms.CharField(
+        label='ที่อยู่', widget=forms.Textarea, required=False
+    )
     pdpa_consent = forms.BooleanField(
         label='ข้าพเจ้ายินยอมให้จัดเก็บและใช้ข้อมูลส่วนบุคคลตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA)',
         required=True,
@@ -101,7 +114,7 @@ class RegistrationForm(BootstrapFormMixin, UserCreationForm):
             profile = user.profile
             profile.full_name = self.cleaned_data['full_name']
             profile.phone = self.cleaned_data['phone']
-            profile.address = self.cleaned_data['address']
+            profile.address = self.cleaned_data.get('address', '')
             profile.pdpa_consent_at = timezone.now()
             profile.save()
             group, _ = Group.objects.get_or_create(name=ADOPTER)
@@ -132,6 +145,63 @@ class StaffCreateForm(BootstrapFormMixin, UserCreationForm):
         return user
 
 
+class ProfileForm(BootstrapFormMixin, forms.ModelForm):
+    full_name = forms.CharField(label='ชื่อ-นามสกุล', max_length=150)
+    phone = forms.CharField(
+        label='เบอร์โทรศัพท์', max_length=20, required=False
+    )
+    address = forms.CharField(
+        label='ที่อยู่', widget=forms.Textarea, required=False
+    )
+    remove_photo = forms.BooleanField(
+        label='ลบรูปโปรไฟล์', required=False
+    )
+
+    class Meta:
+        model = Profile
+        fields = ('full_name', 'phone', 'address', 'photo')
+        widgets = {
+            'photo': forms.FileInput(
+                attrs={'accept': '.jpg,.jpeg,.png,image/*'}
+            ),
+        }
+        help_texts = {
+            'photo': 'รับเฉพาะไฟล์ JPG, JPEG หรือ PNG ขนาดไม่เกิน 5 MB',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._old_photo = None
+        if self.instance and self.instance.pk and self.instance.photo:
+            self._old_photo = self.instance.photo
+        if not self._old_photo:
+            self.fields.pop('remove_photo', None)
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if isinstance(photo, UploadedFile):
+            validate_image(photo)
+        return photo
+
+    def save(self, commit=True):
+        old_photo = self._old_photo
+
+        profile = super().save(commit=False)
+        remove_photo = self.cleaned_data.get('remove_photo')
+        new_photo = self.cleaned_data.get('photo')
+        new_upload = isinstance(new_photo, UploadedFile)
+        if remove_photo:
+            profile.photo = ''
+        elif new_upload:
+            profile.photo = process_profile_photo(new_photo)
+
+        if commit:
+            profile.save()
+            if old_photo and (remove_photo or new_upload):
+                delete_stored_file(old_photo)
+        return profile
+
+
 class UserEditForm(BootstrapFormMixin, forms.ModelForm):
     username = forms.CharField(
         label='ชื่อผู้ใช้',
@@ -148,6 +218,9 @@ class UserEditForm(BootstrapFormMixin, forms.ModelForm):
     full_name = forms.CharField(label='ชื่อ-นามสกุล', max_length=150, required=False)
     phone = forms.CharField(label='เบอร์โทรศัพท์', max_length=20, required=False)
     address = forms.CharField(label='ที่อยู่', widget=forms.Textarea, required=False)
+    remove_photo = forms.BooleanField(
+        label='ลบรูปโปรไฟล์', required=False
+    )
 
     class Meta:
         model = User
@@ -156,14 +229,17 @@ class UserEditForm(BootstrapFormMixin, forms.ModelForm):
             'email': 'อีเมล',
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, allow_remove_photo=False, **kwargs):
         super().__init__(*args, **kwargs)
+        profile = None
         if self.instance and self.instance.pk:
             profile = getattr(self.instance, 'profile', None)
-            if profile:
-                self.fields['full_name'].initial = profile.full_name
-                self.fields['phone'].initial = profile.phone
-                self.fields['address'].initial = profile.address
+        if not allow_remove_photo or not (profile and profile.photo):
+            self.fields.pop('remove_photo', None)
+        if profile:
+            self.fields['full_name'].initial = profile.full_name
+            self.fields['phone'].initial = profile.phone
+            self.fields['address'].initial = profile.address
 
     def clean_username(self):
         username = self.cleaned_data['username']
@@ -177,13 +253,24 @@ class UserEditForm(BootstrapFormMixin, forms.ModelForm):
         return username
 
     def save(self, commit=True):
+        old_photo = None
+        if self.instance.pk:
+            profile = getattr(self.instance, 'profile', None)
+            if profile and profile.photo:
+                old_photo = profile.photo
+
         user = super().save(commit=commit)
         if commit:
             profile = user.profile
             profile.full_name = self.cleaned_data.get('full_name', '')
             profile.phone = self.cleaned_data.get('phone', '')
             profile.address = self.cleaned_data.get('address', '')
+            remove_photo = self.cleaned_data.get('remove_photo')
+            if remove_photo and profile.photo:
+                profile.photo = ''
             profile.save()
+            if remove_photo and old_photo:
+                delete_stored_file(old_photo)
         return user
 
 

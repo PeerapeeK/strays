@@ -13,13 +13,9 @@
                 {% endif %}
                 <form method="post" novalidate>
                     {% csrf_token %}
+                    {% include 'includes/form_required_note.html' %}
                     {% for field in form %}
-                        <div class="mb-3">
-                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-                            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                        </div>
+                        {% include 'includes/form_field.html' with field=field %}
                     {% endfor %}
                     <button type="submit" class="btn btn-primary">สร้างบัญชี</button>
                     <a class="btn btn-link" href="{% url 'user_list' %}">ยกเลิก</a>

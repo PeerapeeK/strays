@@ -34,3 +34,43 @@ def status_class(value):
 def alert_class(value):
     tag = {'error': 'danger', 'debug': 'secondary'}.get(value, value or 'info')
     return f'alert-{tag} bg-{tag}-subtle'
+
+
+def _initials(full_name, username):
+    name = (full_name or '').strip()
+    if name:
+        parts = name.split()
+        if len(parts) >= 2:
+            return (parts[0][0] + parts[1][0]).upper()
+        return name[0].upper()
+    return (username or '?')[:1].upper()
+
+
+@register.inclusion_tag('includes/avatar.html')
+def avatar(user, size=32):
+    profile = None
+    if user and getattr(user, 'is_authenticated', False):
+        try:
+            profile = user.profile
+        except Exception:
+            profile = None
+
+    full_name = profile.full_name if profile else ''
+    username = user.get_username() if user else ''
+    photo_url = ''
+    if profile and profile.photo:
+        try:
+            photo_url = profile.photo.url
+        except ValueError:
+            photo_url = ''
+
+    initials = _initials(full_name, username)
+    size = int(size)
+    ratio = 0.42 if len(initials) == 1 else 0.34
+    return {
+        'photo_url': photo_url,
+        'initials': initials,
+        'size': size,
+        'font_size': max(11, int(size * ratio)),
+        'alt': full_name or username,
+    }

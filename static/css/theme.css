@@ -24,6 +24,8 @@ h1, h2, h3 { font-weight: 700; line-height: 1.25; letter-spacing: 0; }
 .form-control:focus, .form-select:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(242,198,46,.45); }
 .table { --bs-table-bg: transparent; }
 .table > :not(caption) > * > * { border-bottom: 1px solid var(--line); }
+.avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: 50%; object-fit: cover; overflow: hidden; }
+.avatar-initials { background: #EDEBE3; color: var(--muted); font-weight: 600; line-height: 1; }
 .status-pill { border-radius: 999px; padding: .15rem .7rem; font-size: .85rem; background: #EDEBE3; }
 .status-available { background: #DDEFD9; } .status-pending { background: #FBEFC2; }
 .status-adopted { background: #DCE6F2; } .status-rejected { background: #F6DADA; }

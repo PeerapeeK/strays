@@ -105,6 +105,7 @@ class SmokeTests(TestCase):
         self.assertTrue(self.client.login(username='smoke_admin', password=PASSWORD))
         expected = {
             reverse('home'): 200,
+            reverse('my_profile'): 200,
             reverse('dashboard'): 302,
             reverse('admin_dashboard'): 200,
             reverse('staff_dashboard'): 200,
@@ -144,6 +145,7 @@ class SmokeTests(TestCase):
         self.assertTrue(self.client.login(username='smoke_staff', password=PASSWORD))
         expected = {
             reverse('home'): 200,
+            reverse('my_profile'): 200,
             reverse('dashboard'): 302,
             reverse('staff_dashboard'): 200,
             reverse('public_dog_list'): 200,
@@ -176,6 +178,7 @@ class SmokeTests(TestCase):
         self.assertTrue(self.client.login(username='smoke_adopter', password=PASSWORD))
         expected = {
             reverse('home'): 200,
+            reverse('my_profile'): 200,
             reverse('dashboard'): 302,
             reverse('adopter_dashboard'): 200,
             reverse('public_dog_list'): 200,

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load status_tags %}
+
+{% block title %}โปรไฟล์ของฉัน{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    {% avatar user 120 %}
+                    <div>
+                        <h1 class="h4 mb-1">โปรไฟล์ของฉัน</h1>
+                        <p class="text-muted mb-0">แก้ไขข้อมูลส่วนตัวและรูปโปรไฟล์ของคุณ</p>
+                    </div>
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data" novalidate data-loading-form>
+                    {% csrf_token %}
+                    {% include 'includes/form_required_note.html' %}
+                    {% include 'includes/form_field.html' with field=form.full_name %}
+                    {% include 'includes/form_field.html' with field=form.phone %}
+                    {% include 'includes/form_field.html' with field=form.address %}
+                    {% include 'includes/form_field.html' with field=form.photo %}
+
+                    <p class="form-text">
+                        รูปโปรไฟล์เป็นทางเลือก และสามารถลบได้ทุกเมื่อ
+                        ข้อมูลส่วนบุคคลจะถูกใช้เพื่อการคัดกรองและติดต่อตาม PDPA เท่านั้น
+                    </p>
+
+                    {% if form.remove_photo %}
+                        {% include 'includes/form_field.html' with field=form.remove_photo %}
+                    {% endif %}
+
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary" data-loading-text="กำลังบันทึก...">บันทึกโปรไฟล์</button>
+                        <a class="btn btn-link" href="{% url 'home' %}">ยกเลิก</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -13,18 +13,9 @@
                 {% endif %}
                 <form method="post" novalidate>
                     {% csrf_token %}
+                    {% include 'includes/form_required_note.html' %}
                     {% for field in form %}
-                        <div class="mb-3{% if field.field.widget.input_type == 'checkbox' %} form-check{% endif %}">
-                            {% if field.field.widget.input_type == 'checkbox' %}
-                                {{ field }}
-                                <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                            {% else %}
-                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                {{ field }}
-                            {% endif %}
-                            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-                            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                        </div>
+                        {% include 'includes/form_field.html' with field=field %}
                     {% endfor %}
                     <button type="submit" class="btn btn-primary w-100">สมัครสมาชิก</button>
                 </form>

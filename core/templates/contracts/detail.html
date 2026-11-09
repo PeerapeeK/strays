@@ -69,18 +69,15 @@
                     <hr>
                     <form method="post" action="{% url 'homevisit_request_reschedule' home_visit.pk %}" class="row g-2">
                         {% csrf_token %}
+                        <div class="col-12">{% include 'includes/form_required_note.html' %}</div>
                         <div class="col-md-4">
-                            <label class="form-label" for="{{ reschedule_form.requested_scheduled_at.id_for_label }}">{{ reschedule_form.requested_scheduled_at.label }}</label>
-                            {{ reschedule_form.requested_scheduled_at }}
-                            {% for error in reschedule_form.requested_scheduled_at.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            {% include 'includes/form_field.html' with field=reschedule_form.requested_scheduled_at %}
                         </div>
                         <div class="col-md-5">
-                            <label class="form-label" for="{{ reschedule_form.reason.id_for_label }}">{{ reschedule_form.reason.label }}</label>
-                            {{ reschedule_form.reason }}
-                            {% for error in reschedule_form.reason.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            {% include 'includes/form_field.html' with field=reschedule_form.reason %}
                         </div>
                         <div class="col-md-3 d-flex align-items-end">
-                            <button type="submit" class="btn btn-outline-primary w-100">ขอเลื่อนนัด</button>
+                            <button type="submit" class="btn btn-outline-primary w-100 mb-3">ขอเลื่อนนัด</button>
                         </div>
                     </form>
                 {% endif %}

@@ -1,13 +1,17 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}แก้ไขผู้ใช้ {{ edit_user.username }}{% endblock %}
 
 {% block content %}
 <div class="form-flow">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
-        <div>
-            <h1 class="h3 mb-1">แก้ไขผู้ใช้: {{ edit_user.username }}</h1>
-            <p class="text-muted mb-0">ปรับปรุงข้อมูลบัญชีและข้อมูลส่วนตัวของผู้ใช้</p>
+        <div class="d-flex align-items-center gap-3">
+            {% avatar edit_user 48 %}
+            <div>
+                <h1 class="h3 mb-1">แก้ไขผู้ใช้: {{ edit_user.username }}</h1>
+                <p class="text-muted mb-0">ปรับปรุงข้อมูลบัญชีและข้อมูลส่วนตัวของผู้ใช้</p>
+            </div>
         </div>
         <a class="btn btn-link px-0" href="{% url 'user_list' %}">กลับไปยังรายการ</a>
     </div>
@@ -23,6 +27,7 @@
             <h2 class="form-section-title" id="user-step-1">
                 <span class="form-section-num">01</span> ข้อมูลบัญชี
             </h2>
+            {% include 'includes/form_required_note.html' %}
             {% include 'includes/form_field.html' with field=form.username %}
             {% include 'includes/form_field.html' with field=form.email %}
         </section>
@@ -34,6 +39,10 @@
             {% include 'includes/form_field.html' with field=form.full_name %}
             {% include 'includes/form_field.html' with field=form.phone %}
             {% include 'includes/form_field.html' with field=form.address %}
+            {% if form.remove_photo %}
+                {% include 'includes/form_field.html' with field=form.remove_photo %}
+                <p class="form-text">ผู้ดูแลระบบสามารถลบรูปโปรไฟล์ของผู้ใช้อื่นได้ แต่ไม่สามารถเปลี่ยนรูปแทนได้</p>
+            {% endif %}
         </section>
 
         <div class="d-flex flex-wrap gap-2 mt-4">
