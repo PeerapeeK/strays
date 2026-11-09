@@ -1,10 +1,18 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from .forms import RegistrationForm, StaffCreateForm, UserEditForm
+from .forms import (
+    DogForm,
+    DogHealthRecordForm,
+    RegistrationForm,
+    StaffCreateForm,
+    UserEditForm,
+)
+from .models import Dog
 from .permissions import ADOPTER, ADMIN, STAFF, role_required, user_role
 
 
@@ -104,3 +112,118 @@ def user_toggle_active(request, pk):
     else:
         messages.success(request, f'ระงับการใช้งานบัญชี {user.username} แล้ว')
     return redirect('user_list')
+
+
+def public_dog_list(request):
+    dogs = Dog.objects.filter(status=Dog.AVAILABLE)
+
+    q = request.GET.get('q', '').strip()
+    sex = request.GET.get('sex', '')
+    size = request.GET.get('size', '')
+
+    if q:
+        dogs = dogs.filter(
+            Q(name__icontains=q)
+            | Q(breed__icontains=q)
+            | Q(color__icontains=q)
+            | Q(description__icontains=q)
+        )
+    if sex in dict(Dog.SEX_CHOICES):
+        dogs = dogs.filter(sex=sex)
+    if size in dict(Dog.SIZE_CHOICES):
+        dogs = dogs.filter(size=size)
+
+    context = {
+        'dogs': dogs,
+        'q': q,
+        'sex': sex,
+        'size': size,
+        'sex_choices': Dog.SEX_CHOICES,
+        'size_choices': Dog.SIZE_CHOICES,
+    }
+    return render(request, 'dogs/public_list.html', context)
+
+
+def public_dog_detail(request, pk):
+    dog = get_object_or_404(Dog, pk=pk)
+    return render(request, 'dogs/public_detail.html', {'dog': dog})
+
+
+@login_required
+def interview_book(request, dog_id):
+    dog = get_object_or_404(Dog, pk=dog_id)
+    return render(request, 'interviews/book.html', {'dog': dog})
+
+
+@role_required(STAFF, ADMIN)
+def dog_list(request):
+    dogs = Dog.objects.all()
+
+    q = request.GET.get('q', '').strip()
+    status = request.GET.get('status', '')
+
+    if q:
+        dogs = dogs.filter(
+            Q(name__icontains=q)
+            | Q(breed__icontains=q)
+            | Q(color__icontains=q)
+            | Q(description__icontains=q)
+        )
+    if status in dict(Dog.STATUS_CHOICES):
+        dogs = dogs.filter(status=status)
+
+    context = {
+        'dogs': dogs,
+        'q': q,
+        'status': status,
+        'status_choices': Dog.STATUS_CHOICES,
+    }
+    return render(request, 'dogs/dog_list.html', context)
+
+
+@role_required(STAFF, ADMIN)
+def dog_create(request):
+    if request.method == 'POST':
+        form = DogForm(request.POST, request.FILES)
+        if form.is_valid():
+            dog = form.save()
+            messages.success(request, f'เพิ่มข้อมูลสุนัข {dog.name} สำเร็จ')
+            return redirect('dog_detail', pk=dog.pk)
+    else:
+        form = DogForm()
+    return render(request, 'dogs/dog_form.html', {'form': form, 'is_edit': False})
+
+
+@role_required(STAFF, ADMIN)
+def dog_detail(request, pk):
+    dog = get_object_or_404(Dog, pk=pk)
+    if request.method == 'POST':
+        form = DogHealthRecordForm(request.POST)
+        if form.is_valid():
+            record = form.save(commit=False)
+            record.dog = dog
+            record.save()
+            messages.success(request, 'เพิ่มบันทึกสุขภาพสำเร็จ')
+            return redirect('dog_detail', pk=dog.pk)
+    else:
+        form = DogHealthRecordForm()
+    context = {
+        'dog': dog,
+        'health_records': dog.health_records.all(),
+        'form': form,
+    }
+    return render(request, 'dogs/dog_detail.html', context)
+
+
+@role_required(STAFF, ADMIN)
+def dog_edit(request, pk):
+    dog = get_object_or_404(Dog, pk=pk)
+    if request.method == 'POST':
+        form = DogForm(request.POST, request.FILES, instance=dog)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'บันทึกข้อมูลสุนัข {dog.name} สำเร็จ')
+            return redirect('dog_detail', pk=dog.pk)
+    else:
+        form = DogForm(instance=dog)
+    return render(request, 'dogs/dog_form.html', {'form': form, 'is_edit': True, 'dog': dog})

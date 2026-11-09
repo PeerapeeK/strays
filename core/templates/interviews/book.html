@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}จองคิวสัมภาษณ์{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h1 class="h4 mb-3">จองคิวสัมภาษณ์</h1>
+                <p class="mb-1">สุนัข: <strong>{{ dog.name }}</strong></p>
+                <p class="text-muted">ระบบจองคิวสัมภาษณ์จะเปิดใช้งานเร็ว ๆ นี้</p>
+                <a class="btn btn-outline-primary" href="{% url 'public_dog_detail' dog.pk %}">กลับไปยังข้อมูลสุนัข</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

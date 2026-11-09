@@ -3,6 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import Group, User
 from django.utils import timezone
 
+from .models import Dog, DogHealthRecord
 from .permissions import ADOPTER, STAFF
 
 
@@ -111,3 +112,27 @@ class UserEditForm(BootstrapFormMixin, forms.ModelForm):
             profile.address = self.cleaned_data.get('address', '')
             profile.save()
         return user
+
+
+class DogForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = Dog
+        fields = (
+            'name', 'breed', 'sex', 'age_months', 'size', 'color',
+            'description', 'vaccinated', 'sterilized', 'status',
+            'photo', 'intake_date',
+        )
+        widgets = {
+            'intake_date': forms.DateInput(attrs={'type': 'date'}),
+            'description': forms.Textarea(attrs={'rows': 4}),
+        }
+
+
+class DogHealthRecordForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = DogHealthRecord
+        fields = ('record_date', 'title', 'description', 'veterinarian')
+        widgets = {
+            'record_date': forms.DateInput(attrs={'type': 'date'}),
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }

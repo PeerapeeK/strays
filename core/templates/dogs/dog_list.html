@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}จัดการสุนัข{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">จัดการสุนัข</h1>
+    <a class="btn btn-primary" href="{% url 'dog_create' %}">เพิ่มสุนัข</a>
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-md-6">
+        <label class="form-label" for="q">ค้นหา</label>
+        <input type="text" class="form-control" id="q" name="q" value="{{ q }}" placeholder="ชื่อ พันธุ์ สี หรือรายละเอียด">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="status">สถานะ</label>
+        <select class="form-select" id="status" name="status">
+            <option value="">ทั้งหมด</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2 d-grid">
+        <button type="submit" class="btn btn-outline-primary">ค้นหา</button>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-striped align-middle bg-white">
+        <thead>
+            <tr>
+                <th>ชื่อ</th>
+                <th>พันธุ์</th>
+                <th>เพศ</th>
+                <th>ขนาด</th>
+                <th>อายุ (เดือน)</th>
+                <th>สถานะ</th>
+                <th>วันที่รับเข้า</th>
+                <th class="text-end">การจัดการ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dog in dogs %}
+                <tr>
+                    <td>{{ dog.name }}</td>
+                    <td>{{ dog.breed|default:'-' }}</td>
+                    <td>{{ dog.get_sex_display }}</td>
+                    <td>{{ dog.get_size_display }}</td>
+                    <td>{{ dog.age_months }}</td>
+                    <td><span class="badge bg-secondary">{{ dog.get_status_display }}</span></td>
+                    <td>{{ dog.intake_date }}</td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary" href="{% url 'dog_detail' dog.pk %}">ดูข้อมูล</a>
+                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'dog_edit' dog.pk %}">แก้ไข</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="8" class="text-center text-muted">ไม่พบสุนัข</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -16,4 +16,11 @@ urlpatterns = [
     path('users/create-staff/', views.staff_create, name='staff_create'),
     path('users/<int:pk>/edit/', views.user_edit, name='user_edit'),
     path('users/<int:pk>/toggle-active/', views.user_toggle_active, name='user_toggle_active'),
+    path('dogs/', views.public_dog_list, name='public_dog_list'),
+    path('dogs/<int:pk>/', views.public_dog_detail, name='public_dog_detail'),
+    path('interviews/book/<int:dog_id>/', views.interview_book, name='interview_book'),
+    path('staff/dogs/', views.dog_list, name='dog_list'),
+    path('staff/dogs/create/', views.dog_create, name='dog_create'),
+    path('staff/dogs/<int:pk>/', views.dog_detail, name='dog_detail'),
+    path('staff/dogs/<int:pk>/edit/', views.dog_edit, name='dog_edit'),
 ]

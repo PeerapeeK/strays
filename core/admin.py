@@ -1,7 +1,7 @@
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
-from .models import Profile, ShelterSettings
+from .models import Dog, DogHealthRecord, Profile, ShelterSettings
 
 
 @admin.register(Profile)
@@ -19,3 +19,17 @@ class ShelterSettingsAdmin(SimpleHistoryAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Dog)
+class DogAdmin(SimpleHistoryAdmin):
+    list_display = ('name', 'breed', 'sex', 'size', 'status', 'intake_date')
+    list_filter = ('status', 'sex', 'size', 'vaccinated', 'sterilized')
+    search_fields = ('name', 'breed', 'color', 'description')
+
+
+@admin.register(DogHealthRecord)
+class DogHealthRecordAdmin(SimpleHistoryAdmin):
+    list_display = ('dog', 'record_date', 'title', 'veterinarian')
+    list_filter = ('record_date',)
+    search_fields = ('dog__name', 'title', 'description', 'veterinarian')

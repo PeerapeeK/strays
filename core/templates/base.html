@@ -18,14 +18,17 @@
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">หน้าแรก</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'public_dog_list' %}">สุนัขรอรับอุปการะ</a></li>
                 {% if user.is_authenticated %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">แดชบอร์ด</a></li>
                     {% if current_role == 'Adopter' %}
                         <li class="nav-item"><a class="nav-link" href="{% url 'adopter_dashboard' %}">เมนูผู้รับอุปการะ</a></li>
                     {% elif current_role == 'Staff' %}
                         <li class="nav-item"><a class="nav-link" href="{% url 'staff_dashboard' %}">เมนูเจ้าหน้าที่</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'dog_list' %}">จัดการสุนัข</a></li>
                     {% elif current_role == 'Admin' %}
                         <li class="nav-item"><a class="nav-link" href="{% url 'admin_dashboard' %}">เมนูผู้ดูแลระบบ</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'dog_list' %}">จัดการสุนัข</a></li>
                         <li class="nav-item"><a class="nav-link" href="{% url 'user_list' %}">จัดการผู้ใช้</a></li>
                         <li class="nav-item"><a class="nav-link" href="{% url 'staff_create' %}">สร้างบัญชีเจ้าหน้าที่</a></li>
                     {% endif %}

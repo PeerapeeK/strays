@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ dog.name }} - สุนัขรอรับอุปการะ{% endblock %}
+
+{% block content %}
+<a class="btn btn-link px-0 mb-2" href="{% url 'public_dog_list' %}">&larr; กลับไปยังรายการสุนัข</a>
+<div class="row g-4">
+    <div class="col-md-5">
+        {% if dog.photo %}
+            <img src="{{ dog.photo.url }}" class="img-fluid rounded shadow-sm" alt="{{ dog.name }}">
+        {% else %}
+            <div class="bg-secondary-subtle rounded d-flex align-items-center justify-content-center" style="height: 320px;">
+                <span class="text-muted">ไม่มีรูปภาพ</span>
+            </div>
+        {% endif %}
+    </div>
+    <div class="col-md-7">
+        <h1 class="h3 mb-1">{{ dog.name }}</h1>
+        <p class="text-muted">{{ dog.breed|default:'ไม่ระบุพันธุ์' }}</p>
+        <dl class="row">
+            <dt class="col-sm-4">เพศ</dt>
+            <dd class="col-sm-8">{{ dog.get_sex_display }}</dd>
+            <dt class="col-sm-4">ขนาด</dt>
+            <dd class="col-sm-8">{{ dog.get_size_display }}</dd>
+            <dt class="col-sm-4">อายุ</dt>
+            <dd class="col-sm-8">{{ dog.age_months }} เดือน</dd>
+            <dt class="col-sm-4">สี</dt>
+            <dd class="col-sm-8">{{ dog.color|default:'-' }}</dd>
+            <dt class="col-sm-4">ฉีดวัคซีน</dt>
+            <dd class="col-sm-8">{% if dog.vaccinated %}ฉีดแล้ว{% else %}ยังไม่ได้ฉีด{% endif %}</dd>
+            <dt class="col-sm-4">ทำหมัน</dt>
+            <dd class="col-sm-8">{% if dog.sterilized %}ทำแล้ว{% else %}ยังไม่ได้ทำ{% endif %}</dd>
+            <dt class="col-sm-4">วันที่รับเข้า</dt>
+            <dd class="col-sm-8">{{ dog.intake_date }}</dd>
+            <dt class="col-sm-4">สถานะ</dt>
+            <dd class="col-sm-8"><span class="badge bg-success">{{ dog.get_status_display }}</span></dd>
+        </dl>
+        <p>{{ dog.description|linebreaksbr|default:'-' }}</p>
+        <a class="btn btn-primary" href="{% url 'interview_book' dog.pk %}">จองคิวสัมภาษณ์ (Book Interview)</a>
+    </div>
+</div>
+{% endblock %}

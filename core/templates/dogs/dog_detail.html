@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}ข้อมูลสุนัข {{ dog.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">{{ dog.name }}</h1>
+    <div>
+        <a class="btn btn-outline-secondary" href="{% url 'dog_edit' dog.pk %}">แก้ไขข้อมูล</a>
+        <a class="btn btn-link" href="{% url 'dog_list' %}">กลับไปยังรายการ</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-5">
+        {% if dog.photo %}
+            <img src="{{ dog.photo.url }}" class="img-fluid rounded shadow-sm" alt="{{ dog.name }}">
+        {% else %}
+            <div class="bg-secondary-subtle rounded d-flex align-items-center justify-content-center" style="height: 280px;">
+                <span class="text-muted">ไม่มีรูปภาพ</span>
+            </div>
+        {% endif %}
+    </div>
+    <div class="col-md-7">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">พันธุ์</dt>
+            <dd class="col-sm-8">{{ dog.breed|default:'-' }}</dd>
+            <dt class="col-sm-4">เพศ</dt>
+            <dd class="col-sm-8">{{ dog.get_sex_display }}</dd>
+            <dt class="col-sm-4">ขนาด</dt>
+            <dd class="col-sm-8">{{ dog.get_size_display }}</dd>
+            <dt class="col-sm-4">อายุ</dt>
+            <dd class="col-sm-8">{{ dog.age_months }} เดือน</dd>
+            <dt class="col-sm-4">สี</dt>
+            <dd class="col-sm-8">{{ dog.color|default:'-' }}</dd>
+            <dt class="col-sm-4">ฉีดวัคซีน</dt>
+            <dd class="col-sm-8">{% if dog.vaccinated %}ฉีดแล้ว{% else %}ยังไม่ได้ฉีด{% endif %}</dd>
+            <dt class="col-sm-4">ทำหมัน</dt>
+            <dd class="col-sm-8">{% if dog.sterilized %}ทำแล้ว{% else %}ยังไม่ได้ทำ{% endif %}</dd>
+            <dt class="col-sm-4">สถานะ</dt>
+            <dd class="col-sm-8"><span class="badge bg-secondary">{{ dog.get_status_display }}</span></dd>
+            <dt class="col-sm-4">วันที่รับเข้า</dt>
+            <dd class="col-sm-8">{{ dog.intake_date }}</dd>
+            <dt class="col-sm-4">รายละเอียด</dt>
+            <dd class="col-sm-8">{{ dog.description|linebreaksbr|default:'-' }}</dd>
+        </dl>
+    </div>
+</div>
+
+<hr class="my-4">
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <h2 class="h5">บันทึกสุขภาพ</h2>
+        {% for record in health_records %}
+            <div class="card mb-2 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h3 class="h6 mb-1">{{ record.title }}</h3>
+                        <span class="text-muted small">{{ record.record_date }}</span>
+                    </div>
+                    <p class="mb-1">{{ record.description|linebreaksbr }}</p>
+                    {% if record.veterinarian %}<p class="text-muted small mb-0">สัตวแพทย์: {{ record.veterinarian }}</p>{% endif %}
+                </div>
+            </div>
+        {% empty %}
+            <div class="alert alert-info">ยังไม่มีบันทึกสุขภาพ</div>
+        {% endfor %}
+    </div>
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="h5 mb-3">เพิ่มบันทึกสุขภาพ</h2>
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary">เพิ่มบันทึก</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

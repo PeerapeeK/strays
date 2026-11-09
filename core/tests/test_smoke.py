@@ -2,6 +2,7 @@ from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 
+from core.models import Dog
 from core.permissions import ADOPTER, ADMIN, STAFF
 
 PASSWORD = 'Str0ngPass!234'
@@ -21,9 +22,17 @@ class SmokeTests(TestCase):
             cls.users[role] = user
 
         cls.admin = cls.users[ADMIN]
+        cls.dog = Dog.objects.create(name='SmokeDog', status=Dog.AVAILABLE)
 
     def test_public_urls(self):
-        for url in (reverse('home'), reverse('login'), reverse('register')):
+        urls = (
+            reverse('home'),
+            reverse('login'),
+            reverse('register'),
+            reverse('public_dog_list'),
+            reverse('public_dog_detail', args=[self.dog.pk]),
+        )
+        for url in urls:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
@@ -37,6 +46,13 @@ class SmokeTests(TestCase):
             reverse('user_list'): 200,
             reverse('staff_create'): 200,
             reverse('user_edit', args=[self.admin.pk]): 200,
+            reverse('public_dog_list'): 200,
+            reverse('public_dog_detail', args=[self.dog.pk]): 200,
+            reverse('dog_list'): 200,
+            reverse('dog_create'): 200,
+            reverse('dog_detail', args=[self.dog.pk]): 200,
+            reverse('dog_edit', args=[self.dog.pk]): 200,
+            reverse('interview_book', args=[self.dog.pk]): 200,
         }
         for url, status in expected.items():
             with self.subTest(url=url):
@@ -48,6 +64,13 @@ class SmokeTests(TestCase):
             reverse('home'): 200,
             reverse('dashboard'): 302,
             reverse('staff_dashboard'): 200,
+            reverse('public_dog_list'): 200,
+            reverse('public_dog_detail', args=[self.dog.pk]): 200,
+            reverse('dog_list'): 200,
+            reverse('dog_create'): 200,
+            reverse('dog_detail', args=[self.dog.pk]): 200,
+            reverse('dog_edit', args=[self.dog.pk]): 200,
+            reverse('interview_book', args=[self.dog.pk]): 200,
         }
         for url, status in expected.items():
             with self.subTest(url=url):
@@ -59,6 +82,9 @@ class SmokeTests(TestCase):
             reverse('home'): 200,
             reverse('dashboard'): 302,
             reverse('adopter_dashboard'): 200,
+            reverse('public_dog_list'): 200,
+            reverse('public_dog_detail', args=[self.dog.pk]): 200,
+            reverse('interview_book', args=[self.dog.pk]): 200,
         }
         for url, status in expected.items():
             with self.subTest(url=url):
