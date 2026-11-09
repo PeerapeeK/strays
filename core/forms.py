@@ -6,8 +6,11 @@ from django.utils import timezone
 
 from .models import (
     Assessment,
+    AdoptionContract,
+    DEFAULT_CONTRACT_TERMS,
     Dog,
     DogHealthRecord,
+    HomeVisit,
     InterviewResult,
     ShelterSettings,
 )
@@ -309,6 +312,150 @@ class InterviewResultForm(BootstrapFormMixin, forms.Form):
         photos = self.cleaned_data.get('photos') or []
         if not 1 <= len(photos) <= 5:
             raise ValidationError('กรุณาอัปโหลดรูปภาพการสัมภาษณ์ 1-5 รูป')
+        for photo in photos:
+            validate_image(photo)
+        return photos
+
+
+class ContractForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = AdoptionContract
+        fields = ('terms', 'start_date')
+        widgets = {
+            'terms': forms.Textarea(attrs={'rows': 10}),
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+        labels = {
+            'terms': 'ข้อสัญญา',
+            'start_date': 'วันเริ่มสัญญา',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['terms'].required = False
+        self.fields['start_date'].required = False
+
+    def clean_terms(self):
+        return self.cleaned_data.get('terms') or DEFAULT_CONTRACT_TERMS
+
+    def clean_start_date(self):
+        return self.cleaned_data.get('start_date') or timezone.localdate()
+
+
+class FollowUpSubmitForm(BootstrapFormMixin, forms.Form):
+    notes = forms.CharField(
+        label='หมายเหตุ',
+        widget=forms.Textarea(attrs={'rows': 3}),
+        required=False,
+    )
+    photos = MultipleFileField(
+        label='รูปถ่ายที่อยู่อาศัย (1-5 รูป)',
+        widget=MultipleFileInput(
+            attrs={'multiple': True, 'accept': '.jpg,.jpeg,.png,image/*'}
+        ),
+        error_messages={'required': 'กรุณาอัปโหลดรูปถ่ายที่อยู่อาศัย 1-5 รูป'},
+    )
+
+    def clean_photos(self):
+        photos = self.cleaned_data.get('photos') or []
+        if not 1 <= len(photos) <= 5:
+            raise ValidationError('กรุณาอัปโหลดรูปถ่ายที่อยู่อาศัย 1-5 รูป')
+        for photo in photos:
+            validate_image(photo)
+        return photos
+
+
+class HomeVisitForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = HomeVisit
+        fields = ('scheduled_at', 'notes')
+        widgets = {
+            'scheduled_at': forms.DateTimeInput(
+                attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'
+            ),
+            'notes': forms.Textarea(attrs={'rows': 3}),
+        }
+        labels = {
+            'scheduled_at': 'วันและเวลาตรวจบ้าน',
+            'notes': 'หมายเหตุ',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['scheduled_at'].input_formats = [
+            '%Y-%m-%dT%H:%M',
+            '%Y-%m-%dT%H:%M:%S',
+            '%Y-%m-%d %H:%M',
+        ]
+
+    def clean_scheduled_at(self):
+        scheduled_at = self.cleaned_data['scheduled_at']
+        if timezone.is_naive(scheduled_at):
+            scheduled_at = timezone.make_aware(
+                scheduled_at, timezone.get_current_timezone()
+            )
+        if scheduled_at <= timezone.now():
+            raise ValidationError('กรุณาเลือกวันและเวลาในอนาคต')
+        return scheduled_at
+
+
+class HomeVisitRescheduleForm(BootstrapFormMixin, forms.Form):
+    requested_scheduled_at = forms.DateTimeField(
+        label='วันและเวลาที่ต้องการเลื่อนไป',
+        widget=forms.DateTimeInput(
+            attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'
+        ),
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M'],
+        error_messages={
+            'required': 'กรุณาเลือกวันและเวลาที่ต้องการเลื่อนไป',
+            'invalid': 'รูปแบบวันและเวลาไม่ถูกต้อง',
+        },
+    )
+    reason = forms.CharField(
+        label='เหตุผลการขอเลื่อนนัด',
+        widget=forms.Textarea(attrs={'rows': 3}),
+        error_messages={'required': 'กรุณาระบุเหตุผลการขอเลื่อนนัด'},
+    )
+
+    def clean_requested_scheduled_at(self):
+        requested = self.cleaned_data['requested_scheduled_at']
+        if timezone.is_naive(requested):
+            requested = timezone.make_aware(
+                requested, timezone.get_current_timezone()
+            )
+        if requested <= timezone.now():
+            raise ValidationError('กรุณาเลือกวันและเวลาในอนาคต')
+        return requested
+
+
+class FollowUpEvaluationForm(BootstrapFormMixin, forms.Form):
+    housing_condition = forms.CharField(
+        label='สภาพที่อยู่อาศัย',
+        widget=forms.Textarea,
+        error_messages={'required': 'กรุณาระบุสภาพที่อยู่อาศัย'},
+    )
+    dog_condition = forms.CharField(
+        label='สภาพสุนัข',
+        widget=forms.Textarea,
+        error_messages={'required': 'กรุณาระบุสภาพสุนัข'},
+    )
+    notes = forms.CharField(
+        label='หมายเหตุ',
+        widget=forms.Textarea(attrs={'rows': 3}),
+        required=False,
+    )
+    photos = MultipleFileField(
+        label='รูปภาพประกอบการประเมิน (1-5 รูป)',
+        widget=MultipleFileInput(
+            attrs={'multiple': True, 'accept': '.jpg,.jpeg,.png,image/*'}
+        ),
+        error_messages={'required': 'กรุณาอัปโหลดรูปภาพประกอบการประเมิน 1-5 รูป'},
+    )
+
+    def clean_photos(self):
+        photos = self.cleaned_data.get('photos') or []
+        if not 1 <= len(photos) <= 5:
+            raise ValidationError('กรุณาอัปโหลดรูปภาพประกอบการประเมิน 1-5 รูป')
         for photo in photos:
             validate_image(photo)
         return photos

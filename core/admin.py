@@ -2,9 +2,15 @@ from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import (
+    AdoptionContract,
     Assessment,
     Dog,
     DogHealthRecord,
+    FollowUp,
+    FollowUpEvaluation,
+    FollowUpEvaluationPhoto,
+    FollowUpPhoto,
+    HomeVisit,
     HousingPhoto,
     InterviewPhoto,
     InterviewRequest,
@@ -81,3 +87,40 @@ class NotificationAdmin(SimpleHistoryAdmin):
     list_display = ('title', 'user', 'status', 'attempts', 'next_attempt_at', 'created_at')
     list_filter = ('status',)
     search_fields = ('title', 'message', 'user__username', 'dedupe_key')
+
+@admin.register(AdoptionContract)
+class AdoptionContractAdmin(SimpleHistoryAdmin):
+    list_display = ('contract_no', 'dog', 'adopter', 'status', 'start_date', 'acknowledged_at')
+    list_filter = ('status', 'start_date')
+    search_fields = ('contract_no', 'interview_request__dog__name', 'interview_request__adopter__username')
+    readonly_fields = ('contract_no',)
+
+
+@admin.register(FollowUp)
+class FollowUpAdmin(SimpleHistoryAdmin):
+    list_display = ('contract', 'day_offset', 'due_date', 'status', 'submitted_at')
+    list_filter = ('status', 'day_offset')
+    search_fields = ('contract__contract_no',)
+
+
+@admin.register(FollowUpPhoto)
+class FollowUpPhotoAdmin(SimpleHistoryAdmin):
+    list_display = ('follow_up', 'uploaded_at')
+
+
+@admin.register(HomeVisit)
+class HomeVisitAdmin(SimpleHistoryAdmin):
+    list_display = ('contract', 'scheduled_at', 'status', 'created_by')
+    list_filter = ('status', 'scheduled_at')
+    search_fields = ('contract__contract_no',)
+
+
+@admin.register(FollowUpEvaluation)
+class FollowUpEvaluationAdmin(SimpleHistoryAdmin):
+    list_display = ('follow_up', 'evaluator', 'evaluated_at')
+    search_fields = ('follow_up__contract__contract_no',)
+
+
+@admin.register(FollowUpEvaluationPhoto)
+class FollowUpEvaluationPhotoAdmin(SimpleHistoryAdmin):
+    list_display = ('evaluation', 'uploaded_at')

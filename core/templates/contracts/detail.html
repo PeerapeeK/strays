@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}สัญญารับอุปการะ {{ contract.contract_no }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">สัญญารับอุปการะ</h1>
+    <a class="btn btn-link" href="{% url 'contract_list' %}">กลับไปยังรายการ</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <p class="text-muted mb-1">เลขที่สัญญา</p>
+                <p class="fs-4 fw-bold mb-0">{{ contract.contract_no }}</p>
+            </div>
+            <span class="badge bg-secondary fs-6">{{ contract.get_status_display }}</span>
+        </div>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">สุนัข</dt>
+            <dd class="col-sm-9">{{ contract.interview_request.dog.name }}</dd>
+            <dt class="col-sm-3">วันเริ่มสัญญา</dt>
+            <dd class="col-sm-9">{{ contract.start_date|date:'d/m/Y' }}</dd>
+            <dt class="col-sm-3">การยอมรับสัญญา</dt>
+            <dd class="col-sm-9">
+                {% if contract.acknowledged_at %}
+                    ยอมรับเมื่อ {{ contract.acknowledged_at|date:'d/m/Y H:i' }}
+                {% else %}
+                    ยังไม่ยอมรับ
+                {% endif %}
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h2 class="h5 mb-3">ข้อสัญญา</h2>
+        <p class="mb-0">{{ contract.terms|linebreaksbr }}</p>
+    </div>
+</div>
+
+{% if contract.status == 'active' and not contract.acknowledged_at %}
+    <form method="post" action="{% url 'contract_acknowledge' contract.pk %}" class="mb-4">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">ข้าพเจ้ายอมรับสัญญานี้</button>
+    </form>
+{% endif %}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h2 class="h5 mb-3">การนัดตรวจบ้าน</h2>
+        {% for home_visit in home_visits %}
+            <div class="border rounded p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="mb-1">วันและเวลา: <strong>{{ home_visit.scheduled_at|date:'d/m/Y H:i' }}</strong></p>
+                        <p class="mb-1">สถานะ: <span class="badge bg-secondary">{{ home_visit.get_status_display }}</span></p>
+                        {% if home_visit.notes %}<p class="mb-1 text-muted">{{ home_visit.notes|linebreaksbr }}</p>{% endif %}
+                        {% if home_visit.status == 'reschedule_requested' %}
+                            <p class="mb-1">ขอเลื่อนไปเป็น: {{ home_visit.requested_scheduled_at|date:'d/m/Y H:i' }}</p>
+                            <p class="mb-0 text-muted">เหตุผล: {{ home_visit.reschedule_reason }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if home_visit.status != 'reschedule_requested' %}
+                    <hr>
+                    <form method="post" action="{% url 'homevisit_request_reschedule' home_visit.pk %}" class="row g-2">
+                        {% csrf_token %}
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ reschedule_form.requested_scheduled_at.id_for_label }}">{{ reschedule_form.requested_scheduled_at.label }}</label>
+                            {{ reschedule_form.requested_scheduled_at }}
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label" for="{{ reschedule_form.reason.id_for_label }}">{{ reschedule_form.reason.label }}</label>
+                            {{ reschedule_form.reason }}
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-outline-primary w-100">ขอเลื่อนนัด</button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        {% empty %}
+            <p class="text-muted mb-0">ยังไม่มีนัดตรวจบ้าน</p>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h2 class="h5 mb-3">การติดตามผล</h2>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>กำหนด</th>
+                        <th>วันครบกำหนด</th>
+                        <th>สถานะ</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for follow_up in contract.follow_ups.all %}
+                        <tr>
+                            <td>{{ follow_up.day_offset }} วัน</td>
+                            <td>{{ follow_up.due_date|date:'d/m/Y' }}</td>
+                            <td><span class="badge bg-secondary">{{ follow_up.get_status_display }}</span></td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-primary" href="{% url 'followup_detail' follow_up.pk %}">ดูรายละเอียด</a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4" class="text-muted">ยังไม่มีการติดตามผล</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

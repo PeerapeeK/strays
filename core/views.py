@@ -11,8 +11,13 @@ from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 
 from .forms import (
+    ContractForm,
     DogForm,
     DogHealthRecordForm,
+    FollowUpEvaluationForm,
+    FollowUpSubmitForm,
+    HomeVisitForm,
+    HomeVisitRescheduleForm,
     InterviewBookingForm,
     InterviewRejectForm,
     InterviewResultForm,
@@ -21,8 +26,14 @@ from .forms import (
     UserEditForm,
 )
 from .models import (
+    AdoptionContract,
     Assessment,
     Dog,
+    FollowUp,
+    FollowUpEvaluation,
+    FollowUpEvaluationPhoto,
+    FollowUpPhoto,
+    HomeVisit,
     HousingPhoto,
     InterviewPhoto,
     InterviewRequest,
@@ -30,6 +41,7 @@ from .models import (
     notify,
 )
 from .permissions import ADOPTER, ADMIN, STAFF, role_required, user_role
+from .services import activate_contract, create_follow_ups, notify_staff
 
 
 def home(request):
@@ -505,3 +517,500 @@ def dog_edit(request, pk):
     else:
         form = DogForm(instance=dog)
     return render(request, 'dogs/dog_form.html', {'form': form, 'is_edit': True, 'dog': dog})
+
+@role_required(STAFF, ADMIN)
+def staff_contract_list(request):
+    contracts = AdoptionContract.objects.select_related(
+        'interview_request__dog', 'interview_request__adopter'
+    )
+
+    q = request.GET.get('q', '').strip()
+    status = request.GET.get('status', '')
+
+    if q:
+        contracts = contracts.filter(
+            Q(contract_no__icontains=q)
+            | Q(interview_request__dog__name__icontains=q)
+            | Q(interview_request__adopter__username__icontains=q)
+            | Q(interview_request__full_name__icontains=q)
+        )
+    if status in dict(AdoptionContract.STATUS_CHOICES):
+        contracts = contracts.filter(status=status)
+
+    context = {
+        'contracts': contracts,
+        'q': q,
+        'status': status,
+        'status_choices': AdoptionContract.STATUS_CHOICES,
+    }
+    return render(request, 'contracts/staff_list.html', context)
+
+
+@role_required(STAFF, ADMIN)
+def staff_contract_create(request, interview_pk):
+    interview = get_object_or_404(
+        InterviewRequest.objects.select_related('dog', 'adopter'),
+        pk=interview_pk,
+    )
+
+    if not interview.is_approved:
+        messages.error(
+            request, 'สร้างสัญญาได้เฉพาะการสัมภาษณ์ที่ผ่านการอนุมัติแล้วเท่านั้น'
+        )
+        return redirect('staff_interview_list')
+
+    existing = getattr(interview, 'contract', None)
+    if existing is not None:
+        messages.info(request, 'การสัมภาษณ์นี้มีสัญญาแล้ว')
+        return redirect('staff_contract_detail', pk=existing.pk)
+
+    if request.method == 'POST':
+        form = ContractForm(request.POST)
+        if form.is_valid():
+            contract = form.save(commit=False)
+            contract.interview_request = interview
+            contract.status = AdoptionContract.DRAFT
+            contract.save()
+
+            notify(
+                interview.adopter,
+                'สร้างสัญญารับอุปการะแล้ว',
+                f'สัญญาเลขที่ {contract.contract_no} สำหรับสุนัข '
+                f'{interview.dog.name} ถูกสร้างแล้ว',
+                dedupe_key=f'contract-created-{contract.pk}',
+            )
+
+            if request.POST.get('action') == 'activate':
+                activate_contract(contract)
+                messages.success(
+                    request,
+                    f'สร้างและเปิดใช้งานสัญญา {contract.contract_no} สำเร็จ',
+                )
+            else:
+                messages.success(
+                    request, f'บันทึกสัญญา {contract.contract_no} เป็นฉบับร่างสำเร็จ'
+                )
+            return redirect('staff_contract_detail', pk=contract.pk)
+    else:
+        form = ContractForm()
+
+    context = {'form': form, 'interview': interview}
+    return render(request, 'contracts/form.html', context)
+
+
+@role_required(STAFF, ADMIN)
+def staff_contract_detail(request, pk):
+    contract = get_object_or_404(
+        AdoptionContract.objects.select_related(
+            'interview_request__dog', 'interview_request__adopter'
+        ),
+        pk=pk,
+    )
+    context = {
+        'contract': contract,
+        'follow_ups': contract.follow_ups.all(),
+        'home_visits': contract.home_visits.all(),
+        'home_visit_form': HomeVisitForm(),
+    }
+    return render(request, 'contracts/staff_detail.html', context)
+
+
+@role_required(STAFF, ADMIN)
+def staff_contract_edit(request, pk):
+    contract = get_object_or_404(AdoptionContract, pk=pk)
+    if request.method == 'POST':
+        form = ContractForm(request.POST, instance=contract)
+        if form.is_valid():
+            contract = form.save()
+            notify(
+                contract.adopter,
+                'สัญญารับอุปการะถูกแก้ไข',
+                f'สัญญาเลขที่ {contract.contract_no} ถูกแก้ไขโดยเจ้าหน้าที่',
+                dedupe_key=f'contract-updated-{contract.pk}-'
+                f'{int(timezone.now().timestamp())}',
+            )
+            messages.success(request, 'บันทึกสัญญาสำเร็จ')
+            return redirect('staff_contract_detail', pk=contract.pk)
+    else:
+        form = ContractForm(instance=contract)
+    return render(request, 'contracts/form.html', {'form': form, 'contract': contract})
+
+
+@role_required(STAFF, ADMIN)
+@require_POST
+def staff_contract_activate(request, pk):
+    contract = get_object_or_404(
+        AdoptionContract.objects.select_related('interview_request__dog'), pk=pk
+    )
+    if contract.status == AdoptionContract.ACTIVE:
+        messages.info(request, 'สัญญานี้เปิดใช้งานอยู่แล้ว')
+    else:
+        activate_contract(contract)
+        messages.success(request, f'เปิดใช้งานสัญญา {contract.contract_no} สำเร็จ')
+    return redirect('staff_contract_detail', pk=contract.pk)
+
+
+@role_required(ADOPTER)
+def contract_list(request):
+    contracts = AdoptionContract.objects.filter(
+        interview_request__adopter=request.user
+    ).select_related('interview_request__dog')
+    return render(request, 'contracts/list.html', {'contracts': contracts})
+
+
+@role_required(ADOPTER)
+def contract_detail(request, pk):
+    contract = get_object_or_404(
+        AdoptionContract.objects.select_related(
+            'interview_request__dog', 'interview_request__adopter'
+        ),
+        pk=pk,
+        interview_request__adopter=request.user,
+    )
+    context = {
+        'contract': contract,
+        'home_visits': contract.home_visits.all(),
+        'reschedule_form': HomeVisitRescheduleForm(),
+    }
+    return render(request, 'contracts/detail.html', context)
+
+
+@role_required(ADOPTER)
+@require_POST
+def contract_acknowledge(request, pk):
+    contract = get_object_or_404(
+        AdoptionContract, pk=pk, interview_request__adopter=request.user
+    )
+    if contract.status != AdoptionContract.ACTIVE:
+        messages.error(request, 'สามารถยอมรับได้เฉพาะสัญญาที่มีผลบังคับใช้แล้ว')
+    elif contract.acknowledged_at is not None:
+        messages.info(request, 'คุณได้ยอมรับสัญญานี้แล้ว')
+    else:
+        contract.acknowledged_at = timezone.now()
+        contract.save(update_fields=['acknowledged_at', 'updated_at'])
+        notify_staff(
+            'ผู้รับอุปการะยอมรับสัญญาแล้ว',
+            f'สัญญาเลขที่ {contract.contract_no} ถูกยอมรับโดย '
+            f'{contract.interview_request.full_name}',
+            dedupe_key=f'contract-acknowledged-{contract.pk}',
+        )
+        messages.success(request, 'ยอมรับสัญญารับอุปการะสำเร็จ')
+    return redirect('contract_detail', pk=contract.pk)
+
+
+@role_required(ADOPTER)
+def followup_list(request):
+    follow_ups = FollowUp.objects.filter(
+        contract__interview_request__adopter=request.user
+    ).select_related('contract__interview_request__dog')
+    return render(request, 'follow_ups/list.html', {'follow_ups': follow_ups})
+
+
+@role_required(ADOPTER)
+def followup_detail(request, pk):
+    follow_up = get_object_or_404(
+        FollowUp.objects.select_related(
+            'contract__interview_request__dog', 'contract__interview_request__adopter'
+        ),
+        pk=pk,
+        contract__interview_request__adopter=request.user,
+    )
+    return render(
+        request,
+        'follow_ups/detail.html',
+        {'follow_up': follow_up, 'form': FollowUpSubmitForm()},
+    )
+
+
+@role_required(ADOPTER)
+@require_POST
+def followup_submit(request, pk):
+    follow_up = get_object_or_404(
+        FollowUp.objects.select_related(
+            'contract__interview_request__adopter'
+        ),
+        pk=pk,
+        contract__interview_request__adopter=request.user,
+    )
+
+    if follow_up.contract.status != AdoptionContract.ACTIVE:
+        messages.error(request, 'สัญญายังไม่มีผลบังคับใช้')
+        return redirect('followup_detail', pk=follow_up.pk)
+    if follow_up.status == FollowUp.SUBMITTED:
+        messages.error(request, 'คุณได้ส่งข้อมูลการติดตามผลนี้แล้ว')
+        return redirect('followup_detail', pk=follow_up.pk)
+
+    form = FollowUpSubmitForm(request.POST, request.FILES)
+    if form.is_valid():
+        with transaction.atomic():
+            for image in form.cleaned_data['photos']:
+                FollowUpPhoto.objects.create(follow_up=follow_up, image=image)
+            follow_up.notes = form.cleaned_data.get('notes', '')
+            follow_up.status = FollowUp.SUBMITTED
+            follow_up.submitted_at = timezone.now()
+            follow_up.save(
+                update_fields=['notes', 'status', 'submitted_at']
+            )
+
+            notify_staff(
+                'มีการส่งข้อมูลติดตามผล',
+                f'การติดตามผล {follow_up.day_offset} วัน ของสัญญา '
+                f'{follow_up.contract.contract_no} ถูกส่งแล้ว',
+                dedupe_key=f'followup-submitted-{follow_up.pk}',
+            )
+        messages.success(request, 'ส่งข้อมูลการติดตามผลสำเร็จ')
+        return redirect('followup_detail', pk=follow_up.pk)
+
+    return render(
+        request,
+        'follow_ups/detail.html',
+        {'follow_up': follow_up, 'form': form},
+    )
+
+
+@role_required(STAFF, ADMIN)
+def staff_followup_list(request):
+    follow_ups = FollowUp.objects.select_related(
+        'contract__interview_request__dog', 'contract__interview_request__adopter'
+    )
+    status = request.GET.get('status', '')
+    q = request.GET.get('q', '').strip()
+
+    if status in dict(FollowUp.STATUS_CHOICES):
+        follow_ups = follow_ups.filter(status=status)
+    if q:
+        follow_ups = follow_ups.filter(
+            Q(contract__contract_no__icontains=q)
+            | Q(contract__interview_request__dog__name__icontains=q)
+            | Q(contract__interview_request__full_name__icontains=q)
+        )
+
+    context = {
+        'follow_ups': follow_ups,
+        'status': status,
+        'q': q,
+        'status_choices': FollowUp.STATUS_CHOICES,
+    }
+    return render(request, 'follow_ups/staff_list.html', context)
+
+
+@role_required(STAFF, ADMIN)
+def staff_followup_detail(request, pk):
+    follow_up = get_object_or_404(
+        FollowUp.objects.select_related(
+            'contract__interview_request__dog', 'contract__interview_request__adopter'
+        ),
+        pk=pk,
+    )
+    return render(
+        request,
+        'follow_ups/staff_detail.html',
+        {'follow_up': follow_up, 'form': FollowUpEvaluationForm()},
+    )
+
+
+@role_required(STAFF, ADMIN)
+def staff_followup_evaluate(request, pk):
+    follow_up = get_object_or_404(
+        FollowUp.objects.select_related(
+            'contract__interview_request__dog', 'contract__interview_request__adopter'
+        ),
+        pk=pk,
+    )
+    if follow_up.status != FollowUp.SUBMITTED:
+        messages.error(request, 'บันทึกผลประเมินได้เฉพาะการติดตามผลที่ส่งข้อมูลแล้ว')
+        return redirect('staff_followup_detail', pk=follow_up.pk)
+    if getattr(follow_up, 'evaluation', None) is not None:
+        messages.info(request, 'การติดตามผลนี้มีผลประเมินแล้ว')
+        return redirect('staff_followup_detail', pk=follow_up.pk)
+
+    if request.method == 'POST':
+        form = FollowUpEvaluationForm(request.POST, request.FILES)
+        if form.is_valid():
+            with transaction.atomic():
+                evaluation = FollowUpEvaluation.objects.create(
+                    follow_up=follow_up,
+                    evaluator=request.user,
+                    housing_condition=form.cleaned_data['housing_condition'],
+                    dog_condition=form.cleaned_data['dog_condition'],
+                    notes=form.cleaned_data.get('notes', ''),
+                )
+                for image in form.cleaned_data['photos']:
+                    FollowUpEvaluationPhoto.objects.create(
+                        evaluation=evaluation, image=image
+                    )
+
+                notify(
+                    follow_up.contract.adopter,
+                    'ผลประเมินการติดตามผล',
+                    f'การติดตามผล {follow_up.day_offset} วัน ของสัญญา '
+                    f'{follow_up.contract.contract_no} ได้รับการประเมินแล้ว',
+                    dedupe_key=f'followup-evaluated-{follow_up.pk}',
+                )
+            messages.success(request, 'บันทึกผลประเมินการติดตามผลสำเร็จ')
+            return redirect('staff_followup_detail', pk=follow_up.pk)
+    else:
+        form = FollowUpEvaluationForm()
+
+    return render(
+        request,
+        'follow_ups/staff_detail.html',
+        {'follow_up': follow_up, 'form': form},
+    )
+
+
+@role_required(STAFF, ADMIN)
+def homevisit_create(request, contract_pk):
+    contract = get_object_or_404(AdoptionContract, pk=contract_pk)
+    if contract.status != AdoptionContract.ACTIVE:
+        messages.error(request, 'สร้างนัดตรวจบ้านได้เฉพาะสัญญาที่มีผลบังคับใช้แล้ว')
+        return redirect('staff_contract_detail', pk=contract.pk)
+
+    if request.method == 'POST':
+        form = HomeVisitForm(request.POST)
+        if form.is_valid():
+            home_visit = form.save(commit=False)
+            home_visit.contract = contract
+            home_visit.created_by = request.user
+            home_visit.status = HomeVisit.SCHEDULED
+            home_visit.save()
+            notify(
+                contract.adopter,
+                'นัดตรวจบ้านใหม่',
+                f'สัญญาเลขที่ {contract.contract_no} มีนัดตรวจบ้านวันที่ '
+                f'{timezone.localtime(home_visit.scheduled_at):%d/%m/%Y %H:%M}',
+                dedupe_key=f'homevisit-created-{home_visit.pk}',
+            )
+            messages.success(request, 'สร้างนัดตรวจบ้านสำเร็จ')
+            return redirect('staff_contract_detail', pk=contract.pk)
+    else:
+        form = HomeVisitForm()
+
+    return render(
+        request,
+        'home_visits/form.html',
+        {'form': form, 'contract': contract, 'is_edit': False},
+    )
+
+
+@role_required(STAFF, ADMIN)
+def homevisit_edit(request, pk):
+    home_visit = get_object_or_404(
+        HomeVisit.objects.select_related('contract'), pk=pk
+    )
+    if request.method == 'POST':
+        form = HomeVisitForm(request.POST, instance=home_visit)
+        if form.is_valid():
+            home_visit = form.save(commit=False)
+            home_visit.status = HomeVisit.SCHEDULED
+            home_visit.save()
+            notify(
+                home_visit.contract.adopter,
+                'แก้ไขนัดตรวจบ้าน',
+                f'นัดตรวจบ้านของสัญญา {home_visit.contract.contract_no} '
+                f'ถูกแก้ไขเป็นวันที่ '
+                f'{timezone.localtime(home_visit.scheduled_at):%d/%m/%Y %H:%M}',
+                dedupe_key=f'homevisit-updated-{home_visit.pk}-'
+                f'{int(timezone.now().timestamp())}',
+            )
+            messages.success(request, 'แก้ไขนัดตรวจบ้านสำเร็จ')
+            return redirect(
+                'staff_contract_detail', pk=home_visit.contract.pk
+            )
+    else:
+        form = HomeVisitForm(instance=home_visit)
+    return render(
+        request,
+        'home_visits/form.html',
+        {
+            'form': form,
+            'contract': home_visit.contract,
+            'home_visit': home_visit,
+            'is_edit': True,
+        },
+    )
+
+
+@role_required(ADOPTER)
+@require_POST
+def homevisit_request_reschedule(request, pk):
+    home_visit = get_object_or_404(
+        HomeVisit.objects.select_related('contract'),
+        pk=pk,
+        contract__interview_request__adopter=request.user,
+    )
+    form = HomeVisitRescheduleForm(request.POST)
+
+    if home_visit.status == HomeVisit.RESCHEDULE_REQUESTED:
+        messages.error(request, 'คุณได้ขอเลื่อนนัดนี้แล้ว')
+    elif form.is_valid():
+        home_visit.requested_scheduled_at = form.cleaned_data[
+            'requested_scheduled_at'
+        ]
+        home_visit.reschedule_reason = form.cleaned_data['reason']
+        home_visit.reschedule_requested_at = timezone.now()
+        home_visit.status = HomeVisit.RESCHEDULE_REQUESTED
+        home_visit.save()
+        notify_staff(
+            'คำขอเลื่อนนัดตรวจบ้าน',
+            f'สัญญาเลขที่ {home_visit.contract.contract_no} มีคำขอเลื่อนนัด'
+            f'ตรวจบ้านเป็นวันที่ '
+            f'{timezone.localtime(home_visit.requested_scheduled_at):%d/%m/%Y %H:%M}',
+            dedupe_key=f'homevisit-reschedule-requested-{home_visit.pk}-'
+            f'{int(timezone.now().timestamp())}',
+        )
+        messages.success(request, 'ส่งคำขอเลื่อนนัดตรวจบ้านสำเร็จ')
+    else:
+        messages.error(request, 'กรุณากรอกข้อมูลการขอเลื่อนนัดให้ถูกต้อง')
+    return redirect('contract_detail', pk=home_visit.contract.pk)
+
+
+@role_required(STAFF, ADMIN)
+@require_POST
+def homevisit_approve(request, pk):
+    home_visit = get_object_or_404(
+        HomeVisit.objects.select_related('contract'), pk=pk
+    )
+    if home_visit.status != HomeVisit.RESCHEDULE_REQUESTED:
+        messages.error(request, 'อนุมัติได้เฉพาะนัดที่มีคำขอเลื่อนนัดเท่านั้น')
+    elif home_visit.requested_scheduled_at is None:
+        messages.error(request, 'ไม่พบวันและเวลาที่ขอเลื่อน')
+    else:
+        home_visit.scheduled_at = home_visit.requested_scheduled_at
+        home_visit.status = HomeVisit.APPROVED
+        home_visit.save()
+        notify(
+            home_visit.contract.adopter,
+            'อนุมัติการเลื่อนนัดตรวจบ้าน',
+            f'คำขอเลื่อนนัดตรวจบ้านของสัญญา '
+            f'{home_visit.contract.contract_no} ได้รับการอนุมัติแล้ว '
+            f'เป็นวันที่ '
+            f'{timezone.localtime(home_visit.scheduled_at):%d/%m/%Y %H:%M}',
+            dedupe_key=f'homevisit-reschedule-approved-{home_visit.pk}-'
+            f'{int(timezone.now().timestamp())}',
+        )
+        messages.success(request, 'อนุมัติการเลื่อนนัดตรวจบ้านสำเร็จ')
+    return redirect('staff_contract_detail', pk=home_visit.contract.pk)
+
+
+@role_required(STAFF, ADMIN)
+@require_POST
+def homevisit_deny(request, pk):
+    home_visit = get_object_or_404(
+        HomeVisit.objects.select_related('contract'), pk=pk
+    )
+    if home_visit.status != HomeVisit.RESCHEDULE_REQUESTED:
+        messages.error(request, 'ปฏิเสธได้เฉพาะนัดที่มีคำขอเลื่อนนัดเท่านั้น')
+    else:
+        home_visit.status = HomeVisit.DENIED
+        home_visit.save()
+        notify(
+            home_visit.contract.adopter,
+            'ปฏิเสธการเลื่อนนัดตรวจบ้าน',
+            f'คำขอเลื่อนนัดตรวจบ้านของสัญญา '
+            f'{home_visit.contract.contract_no} ถูกปฏิเสธ',
+            dedupe_key=f'homevisit-reschedule-denied-{home_visit.pk}-'
+            f'{int(timezone.now().timestamp())}',
+        )
+        messages.success(request, 'ปฏิเสธการเลื่อนนัดตรวจบ้านสำเร็จ')
+    return redirect('staff_contract_detail', pk=home_visit.contract.pk)

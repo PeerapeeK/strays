@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}จัดการการติดตามผล{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">จัดการการติดตามผล</h1>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-md-6">
+        <label class="form-label" for="filter-q">ค้นหา</label>
+        <input type="text" class="form-control" id="filter-q" name="q" value="{{ q }}"
+               placeholder="เลขที่สัญญา, ชื่อสุนัข, ชื่อผู้รับอุปการะ">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="filter-status">สถานะ</label>
+        <select class="form-select" id="filter-status" name="status">
+            <option value="">ทั้งหมด</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">กรองข้อมูล</button>
+    </div>
+</form>
+
+{% if follow_ups %}
+    <div class="table-responsive">
+        <table class="table table-striped align-middle bg-white">
+            <thead>
+                <tr>
+                    <th>สัญญา</th>
+                    <th>สุนัข</th>
+                    <th>ผู้รับอุปการะ</th>
+                    <th>กำหนด</th>
+                    <th>วันครบกำหนด</th>
+                    <th>สถานะ</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for follow_up in follow_ups %}
+                    <tr>
+                        <td>{{ follow_up.contract.contract_no }}</td>
+                        <td>{{ follow_up.contract.interview_request.dog.name }}</td>
+                        <td>{{ follow_up.contract.interview_request.full_name }}</td>
+                        <td>{{ follow_up.day_offset }} วัน</td>
+                        <td>{{ follow_up.due_date|date:'d/m/Y' }}</td>
+                        <td><span class="badge bg-secondary">{{ follow_up.get_status_display }}</span></td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'staff_followup_detail' follow_up.pk %}">ดูรายละเอียด</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">ไม่พบรายการติดตามผล</div>
+{% endif %}
+{% endblock %}

@@ -10,6 +10,20 @@ from simple_history.models import HistoricalRecords
 
 from .validators import validate_image
 
+DEFAULT_CONTRACT_TERMS = (
+    'ผู้รับอุปการะตกลงดูแลสุนัขที่รับอุปการะให้ได้รับอาหาร น้ำสะอาด ที่อยู่อาศัย '
+    'และการรักษาพยาบาลอย่างเหมาะสม\n'
+    'ผู้รับอุปการะตกลงไม่นำสุนัขไปใช้ในการต่อสู้หรือทารุณกรรมใด ๆ\n'
+    'ผู้รับอุปการะยินยอมให้เจ้าหน้าที่ศูนย์รับเลี้ยงเข้าตรวจสอบสภาพความเป็นอยู่ '
+    'ตามวันและเวลาที่นัดหมาย\n'
+    'ผู้รับอุปการะตกลงแจ้งให้ศูนย์รับเลี้ยงทราบหากไม่สามารถดูแลสุนัขต่อไปได้ '
+    'และจะไม่ปล่อยสุนัขให้เป็นสุนัขจรจัด\n'
+    'ผู้รับอุปการะตกลงส่งรูปถ่ายและข้อมูลการดูแลสุนัขตามกำหนดการติดตามผล '
+    '14, 30, 90 และ 180 วัน'
+)
+
+FOLLOW_UP_DAYS = (14, 30, 90, 180)
+
 
 class Profile(models.Model):
     user = models.OneToOneField(
@@ -209,6 +223,13 @@ class InterviewRequest(models.Model):
     def can_confirm_attendance(self):
         return self.status == self.CONFIRMED and self.attendance_confirmed_at is None
 
+    @property
+    def is_approved(self):
+        result = getattr(self, 'result', None)
+        if result is not None:
+            return result.outcome == InterviewResult.PASSED
+        return self.status == self.COMPLETED
+
 
 class Assessment(models.Model):
     OWN = 'own'
@@ -378,3 +399,223 @@ def notify(user, title, message, dedupe_key=None):
         )
         return notification
     return Notification.objects.create(**defaults)
+
+
+class AdoptionContract(models.Model):
+    DRAFT = 'draft'
+    ACTIVE = 'active'
+    STATUS_CHOICES = [
+        (DRAFT, 'ฉบับร่าง'),
+        (ACTIVE, 'มีผลบังคับใช้'),
+    ]
+
+    contract_no = models.CharField('เลขที่สัญญา', max_length=12, unique=True, editable=False)
+    interview_request = models.OneToOneField(
+        InterviewRequest,
+        on_delete=models.PROTECT,
+        related_name='contract',
+        verbose_name='คำขอนัดสัมภาษณ์',
+    )
+    terms = models.TextField('ข้อสัญญา', default=DEFAULT_CONTRACT_TERMS)
+    status = models.CharField(
+        'สถานะ', max_length=20, choices=STATUS_CHOICES, default=DRAFT
+    )
+    start_date = models.DateField('วันเริ่มสัญญา', default=date.today)
+    acknowledged_at = models.DateTimeField(
+        'เวลาที่ยอมรับสัญญา', null=True, blank=True
+    )
+    created_at = models.DateTimeField('สร้างเมื่อ', auto_now_add=True)
+    updated_at = models.DateTimeField('แก้ไขเมื่อ', auto_now=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = 'สัญญารับอุปการะ'
+        verbose_name_plural = 'สัญญารับอุปการะ'
+        ordering = ('-created_at', '-pk')
+
+    def __str__(self):
+        return f'{self.contract_no} - {self.interview_request.dog.name}'
+
+    def save(self, *args, **kwargs):
+        if not self.contract_no:
+            while True:
+                contract_no = f'CON-{secrets.token_hex(4).upper()}'
+                if not AdoptionContract.objects.filter(
+                    contract_no=contract_no
+                ).exists():
+                    self.contract_no = contract_no
+                    break
+        super().save(*args, **kwargs)
+
+    @property
+    def interview(self):
+        return self.interview_request
+
+    @property
+    def adopter(self):
+        return self.interview_request.adopter
+
+    @property
+    def dog(self):
+        return self.interview_request.dog
+
+
+class FollowUp(models.Model):
+    PENDING = 'pending'
+    SUBMITTED = 'submitted'
+    STATUS_CHOICES = [
+        (PENDING, 'รอการส่งข้อมูล'),
+        (SUBMITTED, 'ส่งข้อมูลแล้ว'),
+    ]
+
+    contract = models.ForeignKey(
+        AdoptionContract,
+        on_delete=models.CASCADE,
+        related_name='follow_ups',
+        verbose_name='สัญญารับอุปการะ',
+    )
+    day_offset = models.PositiveIntegerField('กำหนดติดตามผล (วัน)')
+    due_date = models.DateField('วันครบกำหนด')
+    status = models.CharField(
+        'สถานะ', max_length=20, choices=STATUS_CHOICES, default=PENDING
+    )
+    submitted_at = models.DateTimeField('ส่งข้อมูลเมื่อ', null=True, blank=True)
+    notes = models.TextField('หมายเหตุ', blank=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = 'การติดตามผล'
+        verbose_name_plural = 'การติดตามผล'
+        ordering = ('due_date', 'pk')
+        unique_together = ('contract', 'day_offset')
+
+    def __str__(self):
+        return f'ติดตามผล {self.day_offset} วัน - {self.contract.contract_no}'
+
+
+class FollowUpPhoto(models.Model):
+    follow_up = models.ForeignKey(
+        FollowUp,
+        on_delete=models.CASCADE,
+        related_name='photos',
+        verbose_name='การติดตามผล',
+    )
+    image = models.ImageField(
+        'รูปถ่ายที่อยู่อาศัย',
+        upload_to='follow_ups/',
+        validators=[validate_image],
+    )
+    uploaded_at = models.DateTimeField('อัปโหลดเมื่อ', auto_now_add=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = 'รูปถ่ายการติดตามผล'
+        verbose_name_plural = 'รูปถ่ายการติดตามผล'
+        ordering = ('pk',)
+
+    def __str__(self):
+        return f'รูปถ่ายติดตามผล {self.follow_up.day_offset} วัน'
+
+
+class HomeVisit(models.Model):
+    SCHEDULED = 'scheduled'
+    RESCHEDULE_REQUESTED = 'reschedule_requested'
+    APPROVED = 'approved'
+    DENIED = 'denied'
+    STATUS_CHOICES = [
+        (SCHEDULED, 'นัดหมายแล้ว'),
+        (RESCHEDULE_REQUESTED, 'ขอเลื่อนนัด'),
+        (APPROVED, 'อนุมัติการเลื่อนนัด'),
+        (DENIED, 'ปฏิเสธการเลื่อนนัด'),
+    ]
+
+    contract = models.ForeignKey(
+        AdoptionContract,
+        on_delete=models.CASCADE,
+        related_name='home_visits',
+        verbose_name='สัญญารับอุปการะ',
+    )
+    scheduled_at = models.DateTimeField('วันและเวลาตรวจบ้าน')
+    status = models.CharField(
+        'สถานะ', max_length=30, choices=STATUS_CHOICES, default=SCHEDULED
+    )
+    notes = models.TextField('หมายเหตุ', blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_home_visits',
+        verbose_name='สร้างโดย',
+    )
+    requested_scheduled_at = models.DateTimeField(
+        'วันและเวลาที่ขอเลื่อน', null=True, blank=True
+    )
+    reschedule_reason = models.TextField('เหตุผลการขอเลื่อนนัด', blank=True)
+    reschedule_requested_at = models.DateTimeField(
+        'ขอเลื่อนนัดเมื่อ', null=True, blank=True
+    )
+    created_at = models.DateTimeField('สร้างเมื่อ', auto_now_add=True)
+    updated_at = models.DateTimeField('แก้ไขเมื่อ', auto_now=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = 'การนัดตรวจบ้าน'
+        verbose_name_plural = 'การนัดตรวจบ้าน'
+        ordering = ('scheduled_at', 'pk')
+
+    def __str__(self):
+        return f'ตรวจบ้าน {self.contract.contract_no} - {self.scheduled_at:%d/%m/%Y %H:%M}'
+
+
+class FollowUpEvaluation(models.Model):
+    follow_up = models.OneToOneField(
+        FollowUp,
+        on_delete=models.CASCADE,
+        related_name='evaluation',
+        verbose_name='การติดตามผล',
+    )
+    evaluator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='follow_up_evaluations',
+        verbose_name='ประเมินโดย',
+    )
+    housing_condition = models.TextField('สภาพที่อยู่อาศัย')
+    dog_condition = models.TextField('สภาพสุนัข')
+    notes = models.TextField('หมายเหตุ', blank=True)
+    evaluated_at = models.DateTimeField('ประเมินเมื่อ', auto_now_add=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = 'ผลประเมินการติดตามผล'
+        verbose_name_plural = 'ผลประเมินการติดตามผล'
+
+    def __str__(self):
+        return f'ผลประเมินติดตามผล {self.follow_up.day_offset} วัน'
+
+
+class FollowUpEvaluationPhoto(models.Model):
+    evaluation = models.ForeignKey(
+        FollowUpEvaluation,
+        on_delete=models.CASCADE,
+        related_name='photos',
+        verbose_name='ผลประเมินการติดตามผล',
+    )
+    image = models.ImageField(
+        'รูปภาพประกอบการประเมิน',
+        upload_to='follow_up_evaluations/',
+        validators=[validate_image],
+    )
+    uploaded_at = models.DateTimeField('อัปโหลดเมื่อ', auto_now_add=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = 'รูปภาพผลประเมินการติดตามผล'
+        verbose_name_plural = 'รูปภาพผลประเมินการติดตามผล'
+        ordering = ('pk',)
+
+    def __str__(self):
+        return f'รูปภาพประเมินติดตามผล {self.evaluation.follow_up.day_offset} วัน'

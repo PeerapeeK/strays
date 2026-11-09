@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}การติดตามผล {{ follow_up.day_offset }} วัน{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">การติดตามผล {{ follow_up.day_offset }} วัน</h1>
+    <a class="btn btn-link" href="{% url 'followup_list' %}">กลับไปยังรายการ</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">สัญญา</dt>
+            <dd class="col-sm-9">{{ follow_up.contract.contract_no }}</dd>
+            <dt class="col-sm-3">สุนัข</dt>
+            <dd class="col-sm-9">{{ follow_up.contract.interview_request.dog.name }}</dd>
+            <dt class="col-sm-3">วันครบกำหนด</dt>
+            <dd class="col-sm-9">{{ follow_up.due_date|date:'d/m/Y' }}</dd>
+            <dt class="col-sm-3">สถานะ</dt>
+            <dd class="col-sm-9"><span class="badge bg-secondary">{{ follow_up.get_status_display }}</span></dd>
+            {% if follow_up.submitted_at %}
+                <dt class="col-sm-3">ส่งข้อมูลเมื่อ</dt>
+                <dd class="col-sm-9">{{ follow_up.submitted_at|date:'d/m/Y H:i' }}</dd>
+            {% endif %}
+            {% if follow_up.notes %}
+                <dt class="col-sm-3">หมายเหตุ</dt>
+                <dd class="col-sm-9">{{ follow_up.notes|linebreaksbr }}</dd>
+            {% endif %}
+        </dl>
+    </div>
+</div>
+
+{% if follow_up.photos.exists %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">รูปถ่ายที่ส่งแล้ว</h2>
+            <div class="row g-3">
+                {% for photo in follow_up.photos.all %}
+                    <div class="col-6 col-md-3">
+                        <img src="{{ photo.image.url }}" class="img-fluid rounded shadow-sm" alt="รูปถ่ายการติดตามผล">
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% if follow_up.status == 'pending' %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">ส่งข้อมูลการติดตามผล</h2>
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+            <form method="post" action="{% url 'followup_submit' follow_up.pk %}" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">
+                            {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
+                        </label>
+                        {{ field }}
+                        {% for error in field.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary">ส่งข้อมูลการติดตามผล</button>
+            </form>
+        </div>
+    </div>
+{% endif %}
+
+{% if follow_up.evaluation %}
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="h5 mb-3">ผลประเมินจากเจ้าหน้าที่</h2>
+            <p class="mb-1"><strong>สภาพที่อยู่อาศัย:</strong> {{ follow_up.evaluation.housing_condition|linebreaksbr }}</p>
+            <p class="mb-1"><strong>สภาพสุนัข:</strong> {{ follow_up.evaluation.dog_condition|linebreaksbr }}</p>
+            {% if follow_up.evaluation.notes %}
+                <p class="mb-3"><strong>หมายเหตุ:</strong> {{ follow_up.evaluation.notes|linebreaksbr }}</p>
+            {% endif %}
+            <div class="row g-3">
+                {% for photo in follow_up.evaluation.photos.all %}
+                    <div class="col-6 col-md-3">
+                        <img src="{{ photo.image.url }}" class="img-fluid rounded shadow-sm" alt="รูปภาพผลประเมิน">
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

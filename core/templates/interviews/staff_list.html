@@ -60,6 +60,12 @@
                                         data-bs-toggle="modal" data-bs-target="#rejectModal{{ interview.pk }}">ปฏิเสธ</button>
                             {% elif interview.status == 'confirmed' %}
                                 <a class="btn btn-sm btn-primary" href="{% url 'staff_interview_result' interview.pk %}">บันทึกผล</a>
+                            {% elif interview.is_approved %}
+                                {% if interview.contract %}
+                                    <a class="btn btn-sm btn-outline-primary" href="{% url 'staff_contract_detail' interview.contract.pk %}">ดูสัญญา</a>
+                                {% else %}
+                                    <a class="btn btn-sm btn-primary" href="{% url 'staff_contract_create' interview.pk %}">สร้างสัญญา</a>
+                                {% endif %}
                             {% else %}
                                 <span class="text-muted small">-</span>
                             {% endif %}
