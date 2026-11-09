@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}แดชบอร์ดผู้ดูแลระบบ{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">แดชบอร์ดผู้ดูแลระบบ</h1>
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h5">จัดการผู้ใช้</h2>
+                <p class="text-muted">สร้างบัญชีเจ้าหน้าที่ แก้ไขข้อมูล และระงับการใช้งานบัญชี</p>
+                <a class="btn btn-primary" href="{% url 'user_list' %}">ไปที่หน้าจัดการผู้ใช้</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h5">สร้างบัญชีเจ้าหน้าที่</h2>
+                <p class="text-muted">เพิ่มเจ้าหน้าที่ศูนย์รับเลี้ยงเข้าสู่ระบบ</p>
+                <a class="btn btn-outline-primary" href="{% url 'staff_create' %}">สร้างบัญชีเจ้าหน้าที่</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

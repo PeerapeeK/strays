@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}แก้ไขผู้ใช้ {{ edit_user.username }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h1 class="h4 mb-3">แก้ไขผู้ใช้: {{ edit_user.username }}</h1>
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                    <a class="btn btn-link" href="{% url 'user_list' %}">ยกเลิก</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}เข้าสู่ระบบ - ระบบหาบ้านสุนัขจรจัด{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="h4 mb-3">เข้าสู่ระบบ</h2>
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+                    <button type="submit" class="btn btn-primary w-100">เข้าสู่ระบบ</button>
+                </form>
+                <p class="mt-3 mb-0 text-center small">
+                    ยังไม่มีบัญชี? <a href="{% url 'register' %}">สมัครสมาชิก</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

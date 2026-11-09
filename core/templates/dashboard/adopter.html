@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}แดชบอร์ดผู้รับอุปการะ{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">แดชบอร์ดผู้รับอุปการะ</h1>
+<div class="card shadow-sm">
+    <div class="card-body">
+        <p class="mb-2">ยินดีต้อนรับ {{ user.profile.full_name|default:user.username }}</p>
+        <p class="text-muted mb-0">ที่นี่คุณจะสามารถค้นหาสุนัขเพื่อรับอุปการะและติดตามสถานะคำขอของคุณได้</p>
+    </div>
+</div>
+{% endblock %}

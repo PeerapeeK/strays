@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}หน้าแรก - ระบบหาบ้านสุนัขจรจัด{% endblock %}
+
+{% block content %}
+<div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
+    <h1 class="display-6">ระบบหาบ้านและคัดกรองเจ้าของให้สุนัขจรจัด</h1>
+    <p class="lead">ช่วยเหลือสุนัขจรจัดให้ได้พบกับบ้านที่อบอุ่นและเจ้าของที่ผ่านการคัดกรอง</p>
+    {% if user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'dashboard' %}">ไปที่แดชบอร์ด</a>
+    {% else %}
+        <a class="btn btn-primary me-2" href="{% url 'login' %}">เข้าสู่ระบบ</a>
+        <a class="btn btn-outline-primary" href="{% url 'register' %}">สมัครสมาชิก</a>
+    {% endif %}
+</div>
+{% endblock %}
