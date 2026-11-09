@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Idempotent server provisioning for StayMatch (Debian/Ubuntu LXC).
+# Idempotent server provisioning for StrayMatch (Debian/Ubuntu LXC).
 # Installs packages, the strays user/venv, systemd + nginx units and enables
 # the services. It never creates secrets and never touches cloudflared.
 set -euo pipefail
@@ -64,7 +64,7 @@ install -m 644 "$REPO_DIR/deploy/nginx-strays.conf" \
     /etc/nginx/sites-available/strays.conf
 ln -sfn /etc/nginx/sites-available/strays.conf \
     /etc/nginx/sites-enabled/strays.conf
-# The default site listens on the LAN; StayMatch must stay loopback-only.
+# The default site listens on the LAN; StrayMatch must stay loopback-only.
 rm -f /etc/nginx/sites-enabled/default
 
 systemctl daemon-reload

@@ -1,4 +1,4 @@
-# Deploying StayMatch to CT105 (Proxmox) behind Cloudflare Tunnel
+# Deploying StrayMatch to CT105 (Proxmox) behind Cloudflare Tunnel
 
 Target: Debian/Ubuntu LXC `CT105` on Proxmox node `victus`, published at
 `https://strays.peerapeek.cc`.

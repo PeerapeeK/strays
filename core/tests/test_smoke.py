@@ -312,8 +312,15 @@ class PublicPageTests(TestCase):
 
         response = self.client.get(reverse('home'))
         self.assertContains(
-            response, f'© {date.today().year} StayMatch Platform'
+            response, f'© {date.today().year} StrayMatch Platform'
         )
+
+    def test_public_pages_use_straymatch_brand(self):
+        for url_name in ('home', 'login', 'privacy'):
+            response = self.client.get(reverse(url_name))
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, 'StrayMatch')
+            self.assertNotContains(response, 'StayMatch')
 
     def test_privacy_and_terms_pages(self):
         privacy = self.client.get(reverse('privacy'))

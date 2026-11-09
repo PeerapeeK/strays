@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pull, install, migrate, collect static files and restart StayMatch.
+# Pull, install, migrate, collect static files and restart StrayMatch.
 # Run as root on the LXC:  sudo /srv/strays/deploy/deploy.sh
 set -euo pipefail
 

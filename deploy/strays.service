@@ -1,5 +1,5 @@
 [Unit]
-Description=StayMatch Django application (gunicorn)
+Description=StrayMatch Django application (gunicorn)
 After=network.target
 
 [Service]

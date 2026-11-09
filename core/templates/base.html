@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}StayMatch{% endblock %}</title>
+    <title>{% block title %}StrayMatch{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
         <div class="site-header-inner">
             <a class="site-logo" href="{% url 'home' %}">
                 <span aria-hidden="true">🏡</span>
-                <span>StayMatch</span>
+                <span>StrayMatch</span>
             </a>
             <button class="navbar-toggler site-menu-toggle" type="button" data-bs-toggle="collapse"
                     data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false"
@@ -117,7 +117,7 @@
 <footer class="site-footer">
     {% block footer %}
     <div class="site-footer-inner">
-        <div>© {% now "Y" %} StayMatch Platform</div>
+        <div>© {% now "Y" %} StrayMatch Platform</div>
         <div class="site-footer-links">
             <a href="{% url 'privacy' %}">Privacy Policy</a>
             <a href="{% url 'terms' %}">Terms of Service</a>
