@@ -208,3 +208,38 @@ class SmokeTests(TestCase):
         self.assertEqual(
             self.client.get(reverse('audit_log')).status_code, 403
         )
+
+
+class HomePageTests(TestCase):
+    def test_home_without_dogs(self):
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ให้เขาได้กลับบ้านสักที')
+        self.assertNotContains(response, 'home-strip')
+        self.assertContains(response, reverse('public_dog_list'))
+
+    def test_home_with_three_or_more_dogs_shows_strip(self):
+        dogs = [
+            Dog.objects.create(name=f'HomeDog{i}', status=Dog.AVAILABLE)
+            for i in range(3)
+        ]
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'home-strip')
+        for dog in dogs:
+            self.assertContains(response, reverse('public_dog_detail', args=[dog.pk]))
+        self.assertContains(response, reverse('register'))
+
+    def test_home_with_fewer_than_three_dogs_hides_strip(self):
+        Dog.objects.create(name='HomeDogOne', status=Dog.AVAILABLE)
+        Dog.objects.create(name='HomeDogTwo', status=Dog.AVAILABLE)
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'home-strip')
+
+
+class HomePageNoDogsTests(TestCase):
+    def test_home_returns_200_without_dogs(self):
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, 200)
+

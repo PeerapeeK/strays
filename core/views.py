@@ -50,7 +50,14 @@ from .services import activate_contract, create_follow_ups, notify_staff
 
 
 def home(request):
-    return render(request, 'home.html')
+    dogs = list(Dog.objects.filter(status=Dog.AVAILABLE)[:5])
+    featured_dog = next((dog for dog in dogs if dog.photo), dogs[0] if dogs else None)
+    context = {
+        'dogs': dogs,
+        'featured_dog': featured_dog,
+        'show_dog_strip': len(dogs) >= 3,
+    }
+    return render(request, 'home.html', context)
 
 
 def register(request):

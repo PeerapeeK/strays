@@ -3,14 +3,163 @@
 {% block title %}หน้าแรก - ระบบหาบ้านสุนัขจรจัด{% endblock %}
 
 {% block content %}
-<div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
-    <h1 class="display-6">ระบบหาบ้านและคัดกรองเจ้าของให้สุนัขจรจัด</h1>
-    <p class="lead">ช่วยเหลือสุนัขจรจัดให้ได้พบกับบ้านที่อบอุ่นและเจ้าของที่ผ่านการคัดกรอง</p>
-    {% if user.is_authenticated %}
-        <a class="btn btn-primary" href="{% url 'dashboard' %}">ไปที่แดชบอร์ด</a>
-    {% else %}
-        <a class="btn btn-primary me-2" href="{% url 'login' %}">เข้าสู่ระบบ</a>
-        <a class="btn btn-outline-primary" href="{% url 'register' %}">สมัครสมาชิก</a>
+<div class="home-page">
+
+    <header class="home-header">
+        <span class="home-eyebrow">ศูนย์หาบ้านสุนัขจรจัด</span>
+        <p class="text-muted small mb-0">คัดกรองอย่างใส่ใจ เพื่อบ้านหลังใหม่ที่ยั่งยืน</p>
+    </header>
+
+    {% if show_dog_strip %}
+    <nav class="home-strip" aria-label="สุนัขรอรับอุปการะ">
+        {% for dog in dogs %}
+        <a class="home-tile" href="{% url 'public_dog_detail' dog.pk %}" aria-label="{{ dog.name }}">
+            {% if dog.photo %}
+                <img src="{{ dog.photo.url }}" alt="{{ dog.name }}" loading="lazy">
+            {% else %}
+                <span class="home-tile-placeholder" aria-hidden="true">{{ dog.name|first }}</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </nav>
     {% endif %}
+
+    <section class="home-hero">
+        <h1 class="home-headline">ให้เขาได้กลับบ้านสักที</h1>
+        <p class="text-muted">ทุกตัวมีเรื่องราว และทุกตัวสมควรได้พบครอบครัวที่พร้อมดูแล</p>
+        <p class="text-muted mb-0">เราใส่ใจทุกขั้นตอน ตั้งแต่การคัดกรองจนถึงการติดตามผลหลังรับเลี้ยง</p>
+    </section>
+
+    <section class="home-media" aria-label="สุนัขแนะนำ">
+        {% if featured_dog %}
+            {% if featured_dog.photo %}
+                <img src="{{ featured_dog.photo.url }}" alt="{{ featured_dog.name }}">
+            {% else %}
+                <div class="home-media-placeholder">
+                    <span>รูปภาพของ {{ featured_dog.name }} กำลังจะมาเร็ว ๆ นี้</span>
+                </div>
+            {% endif %}
+            <div class="home-media-body">
+                <span class="home-media-name">{{ featured_dog.name }}</span>
+                <a class="home-pill" href="{% url 'public_dog_list' %}">ดูสุนัขทั้งหมด</a>
+            </div>
+        {% else %}
+            <div class="home-media-placeholder">
+                <span>วันนี้ยังไม่มีสุนัขรอรับอุปการะ แต่บ้านหลังใหม่ยังเปิดเสมอ</span>
+            </div>
+            <div class="home-media-body">
+                <span class="home-media-name text-muted">ยังไม่มีสุนัขในระบบ</span>
+                <a class="home-pill" href="{% url 'public_dog_list' %}">ดูสุนัขทั้งหมด</a>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="home-steps" aria-label="ขั้นตอนการรับเลี้ยง">
+        <div class="rule-row">
+            <span class="rule-index">01</span>
+            <h2>ค้นหาและจองคิว</h2>
+            <p class="text-muted mb-0">เลือกสุนัขที่ใช่ แล้วจองคิวสัมภาษณ์ล่วงหน้าผ่านระบบ</p>
+        </div>
+        <div class="rule-row">
+            <span class="rule-index">02</span>
+            <h2>สัมภาษณ์และทำสัญญา</h2>
+            <p class="text-muted mb-0">เจ้าหน้าที่พูดคุย ประเมินความพร้อม และจัดทำสัญญารับอุปการะ</p>
+        </div>
+        <div class="rule-row">
+            <span class="rule-index">03</span>
+            <h2>ติดตามผลหลังรับเลี้ยง</h2>
+            <p class="text-muted mb-0">ส่งภาพและรายงานตามนัด เพื่อให้มั่นใจว่าทุกตัวได้อยู่ในบ้านที่อบอุ่น</p>
+        </div>
+    </section>
+
+    <section class="home-cta">
+        <h2 class="h4">พร้อมเปิดบ้านให้เขาแล้วหรือยัง</h2>
+        <p class="text-muted mb-0">เริ่มต้นด้วยการสมัครสมาชิก แล้วเราจะพาไปพบเพื่อนตัวใหม่</p>
+        <a class="btn btn-primary btn-lg mt-3" href="{% url 'register' %}">สมัครสมาชิก</a>
+        <ol class="home-cta-list">
+            <li>
+                <span class="home-cta-num">1</span>
+                <span><strong class="d-block">สมัครสมาชิก</strong><span class="text-muted small">ยืนยันตัวตนและให้ความยินยอมตาม PDPA</span></span>
+            </li>
+            <li>
+                <span class="home-cta-num">2</span>
+                <span><strong class="d-block">เลือกสุนัขที่ใช่</strong><span class="text-muted small">ดูรายละเอียดและจองคิวสัมภาษณ์</span></span>
+            </li>
+            <li>
+                <span class="home-cta-num">3</span>
+                <span><strong class="d-block">รับเขาเข้าบ้าน</strong><span class="text-muted small">ทำสัญญาและติดตามผลอย่างต่อเนื่อง</span></span>
+            </li>
+        </ol>
+    </section>
+
+    <section class="home-faq" aria-label="คำถามที่พบบ่อย">
+        <h2 class="h5 text-center mb-3">คำถามที่พบบ่อย</h2>
+        <div class="accordion accordion-flush" id="homeFaq">
+            <div class="accordion-item">
+                <h3 class="accordion-header" id="faqHeadingOne">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#faqOne" aria-expanded="true" aria-controls="faqOne">
+                        ต้องมีคุณสมบัติอย่างไรจึงจะรับเลี้ยงได้
+                    </button>
+                </h3>
+                <div id="faqOne" class="accordion-collapse collapse show" aria-labelledby="faqHeadingOne"
+                     data-bs-parent="#homeFaq">
+                    <div class="accordion-body">
+                        ผู้รับเลี้ยงต้องมีอายุครบ 20 ปี มีที่อยู่อาศัยที่มั่นคง และพร้อมให้เวลาในการดูแลสุนัขอย่างต่อเนื่อง
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h3 class="accordion-header" id="faqHeadingTwo">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#faqTwo" aria-expanded="false" aria-controls="faqTwo">
+                        ขั้นตอนการจองคิวสัมภาษณ์เป็นอย่างไร
+                    </button>
+                </h3>
+                <div id="faqTwo" class="accordion-collapse collapse" aria-labelledby="faqHeadingTwo"
+                     data-bs-parent="#homeFaq">
+                    <div class="accordion-body">
+                        สมัครสมาชิกและเข้าสู่ระบบ เลือกสุนัขที่สนใจ แล้วกดจองคิวพร้อมกรอกข้อมูลและแนบภาพที่อยู่อาศัย
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h3 class="accordion-header" id="faqHeadingThree">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#faqThree" aria-expanded="false" aria-controls="faqThree">
+                        ข้อมูลส่วนบุคคลของฉันถูกเก็บอย่างไร
+                    </button>
+                </h3>
+                <div id="faqThree" class="accordion-collapse collapse" aria-labelledby="faqHeadingThree"
+                     data-bs-parent="#homeFaq">
+                    <div class="accordion-body">
+                        เราเก็บข้อมูลส่วนบุคคลและภาพที่อยู่อาศัยเฉพาะเมื่อท่านให้ความยินยอมตาม PDPA และใช้เพื่อการคัดกรองผู้รับเลี้ยงเท่านั้น
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h3 class="accordion-header" id="faqHeadingFour">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#faqFour" aria-expanded="false" aria-controls="faqFour">
+                        หลังรับเลี้ยงแล้วต้องติดตามผลอย่างไร
+                    </button>
+                </h3>
+                <div id="faqFour" class="accordion-collapse collapse" aria-labelledby="faqHeadingFour"
+                     data-bs-parent="#homeFaq">
+                    <div class="accordion-body">
+                        ผู้รับเลี้ยงส่งภาพและรายงานตามกำหนดนัดหมาย และเจ้าหน้าที่อาจนัดเยี่ยมบ้านเพื่อดูแลสวัสดิภาพของสุนัข
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block footer %}
+<div class="home-footer small text-muted">
+    <p class="mb-1">ระบบหาบ้านและคัดกรองเจ้าของให้สุนัขจรจัด</p>
+    <a class="link-secondary text-decoration-none" href="#">นโยบายความเป็นส่วนตัว</a>
 </div>
 {% endblock %}
