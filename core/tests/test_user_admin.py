@@ -34,8 +34,6 @@ class UserAdminTestBase(TestCase):
     def edit_data(self, username, **overrides):
         data = {
             'username': username,
-            'first_name': '',
-            'last_name': '',
             'email': '',
             'full_name': '',
             'phone': '',
@@ -126,6 +124,55 @@ class UsernameChangeTests(UserAdminTestBase):
             ).exists()
         )
 
+    def test_edit_form_has_only_one_name_field(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse('user_edit', args=[self.plain.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+
+        form = response.context['form']
+        self.assertIn('username', form.fields)
+        self.assertIn('email', form.fields)
+        self.assertIn('full_name', form.fields)
+        self.assertNotIn('first_name', form.fields)
+        self.assertNotIn('last_name', form.fields)
+
+        self.assertNotContains(response, 'name="first_name"')
+        self.assertNotContains(response, 'name="last_name"')
+        self.assertContains(response, 'name="full_name"', count=1)
+
+    def test_staff_create_form_has_only_one_name_field(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('staff_create'))
+        self.assertEqual(response.status_code, 200)
+
+        form = response.context['form']
+        self.assertIn('full_name', form.fields)
+        self.assertNotIn('first_name', form.fields)
+        self.assertNotIn('last_name', form.fields)
+
+        self.assertNotContains(response, 'name="first_name"')
+        self.assertNotContains(response, 'name="last_name"')
+        self.assertContains(response, 'name="full_name"', count=1)
+
+    def test_editing_does_not_touch_legacy_name_fields(self):
+        self.plain.first_name = 'Legacy'
+        self.plain.last_name = 'Name'
+        self.plain.save(update_fields=['first_name', 'last_name'])
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('user_edit', args=[self.plain.pk]),
+            self.edit_data('plain_user', full_name='ชื่อใหม่ ทดสอบ'),
+        )
+        self.assertEqual(response.status_code, 302)
+
+        self.plain.refresh_from_db()
+        self.assertEqual(self.plain.first_name, 'Legacy')
+        self.assertEqual(self.plain.last_name, 'Name')
+        self.assertEqual(self.plain.profile.full_name, 'ชื่อใหม่ ทดสอบ')
+
     def test_same_username_with_different_case_is_allowed(self):
         self.client.force_login(self.admin)
         response = self.client.post(
@@ -177,8 +224,6 @@ class UserDeleteAnonymizeTests(UserAdminTestBase):
         self.assertFalse(self.adopter.is_active)
         self.assertFalse(self.adopter.has_usable_password())
         self.assertEqual(self.adopter.email, '')
-        self.assertEqual(self.adopter.first_name, '')
-        self.assertEqual(self.adopter.last_name, '')
 
         profile = self.adopter.profile
         self.assertEqual(profile.full_name, '')

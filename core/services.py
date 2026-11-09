@@ -170,8 +170,6 @@ def anonymize_user(target, actor):
 
         target.username = candidate
         target.email = ''
-        target.first_name = ''
-        target.last_name = ''
         target.is_active = False
         target.set_unusable_password()
         target.save()
