@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import Group, User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -63,6 +63,20 @@ class BootstrapFormMixin:
             widget.attrs['class'] = f'{existing} {css}'.strip()
             if widget.__class__.__name__ == 'Textarea':
                 widget.attrs.setdefault('rows', 3)
+
+    def full_clean(self):
+        super().full_clean()
+        for name, field in self.fields.items():
+            if not self.errors.get(name):
+                continue
+            widget = field.widget
+            existing = widget.attrs.get('class', '')
+            if 'is-invalid' not in existing.split():
+                widget.attrs['class'] = f'{existing} is-invalid'.strip()
+
+
+class LoginForm(BootstrapFormMixin, AuthenticationForm):
+    pass
 
 
 class RegistrationForm(BootstrapFormMixin, UserCreationForm):
@@ -162,6 +176,25 @@ class DogForm(BootstrapFormMixin, forms.ModelForm):
         widgets = {
             'intake_date': forms.DateInput(attrs={'type': 'date'}),
             'description': forms.Textarea(attrs={'rows': 4}),
+            'photo': forms.ClearableFileInput(attrs={
+                'accept': '.jpg,.jpeg,.png,image/*',
+                'data-photo-preview': 'dog-photo-preview',
+                'data-photo-error': 'dog-photo-error',
+            }),
+        }
+        help_texts = {
+            'name': 'ชื่อที่ใช้เรียกสุนัข',
+            'breed': 'ระบุพันธุ์ หรือ "พันธุ์ผสม" หากไม่ทราบ',
+            'sex': 'เลือกเพศของสุนัข',
+            'age_months': 'ระบุอายุเป็นจำนวนเดือน',
+            'size': 'ขนาดตัวเมื่อโตเต็มที่',
+            'color': 'สีขนหรือลักษณะเด่น',
+            'description': 'เล่าเรื่องราว ลักษณะนิสัย และข้อมูลที่ควรรู้',
+            'vaccinated': 'ติ๊กหากได้รับวัคซีนครบตามกำหนด',
+            'sterilized': 'ติ๊กหากทำหมันแล้ว',
+            'status': 'สถานะการรับอุปการะปัจจุบัน',
+            'photo': 'รับเฉพาะไฟล์ JPG, JPEG หรือ PNG ขนาดไม่เกิน 5 MB',
+            'intake_date': 'วันที่รับสุนัขเข้าศูนย์',
         }
 
 
@@ -247,12 +280,35 @@ class InterviewBookingForm(BootstrapFormMixin, forms.Form):
         error_messages={'required': 'จำเป็นต้องยินยอมให้เก็บข้อมูลส่วนบุคคลก่อนจองคิวสัมภาษณ์'},
     )
 
+    HELP_TEXTS = {
+        'full_name': 'ใช้ชื่อ-นามสกุลเดียวกับบัตรประชาชน',
+        'phone': 'ระบุเบอร์โทรศัพท์ที่ติดต่อได้สะดวก',
+        'address': 'ระบุที่อยู่ปัจจุบันโดยละเอียด',
+        'housing_type': 'เลือกประเภทที่พักอาศัยที่ท่านอยู่ปัจจุบัน',
+        'household_members': 'นับรวมตัวท่านเอง',
+        'has_other_pets': 'เช่น สุนัข แมว หรือสัตว์เลี้ยงอื่น ๆ',
+        'experience': 'อธิบายประสบการณ์การเลี้ยงสุนัข (ถ้ามี)',
+        'motivation': 'เล่าเหตุผลและความพร้อมในการรับอุปการะ',
+        'agree_home_visit': 'เจ้าหน้าที่อาจเข้าตรวจบ้านก่อนและหลังรับเลี้ยง',
+        'scheduled_at': 'เลือกวันและเวลาในช่วงเปิดทำการของศูนย์',
+        'housing_photos': 'รับเฉพาะไฟล์ JPG, JPEG หรือ PNG ขนาดไม่เกิน 5 MB ต่อรูป',
+    }
+
     def __init__(self, *args, require_pdpa=False, **kwargs):
         super().__init__(*args, **kwargs)
+        for name, text in self.HELP_TEXTS.items():
+            if name in self.fields:
+                self.fields[name].help_text = text
+        self.fields['housing_photos'].widget.attrs.update({
+            'data-photo-preview': 'housing-photo-preview',
+            'data-photo-error': 'housing-photo-error',
+        })
         if require_pdpa:
             self.fields['pdpa_consent'].required = True
         else:
-            self.fields.pop('pdpa_consent')
+            self.fields['pdpa_consent'].required = False
+            self.fields['pdpa_consent'].disabled = True
+            self.fields['pdpa_consent'].initial = True
 
     def clean_scheduled_at(self):
         scheduled_at = self.cleaned_data['scheduled_at']
@@ -347,12 +403,19 @@ class FollowUpSubmitForm(BootstrapFormMixin, forms.Form):
         label='หมายเหตุ',
         widget=forms.Textarea(attrs={'rows': 3}),
         required=False,
+        help_text='อธิบายสภาพความเป็นอยู่ของสุนัขโดยย่อ (ไม่บังคับ)',
     )
     photos = MultipleFileField(
         label='รูปถ่ายที่อยู่อาศัย (1-5 รูป)',
         widget=MultipleFileInput(
-            attrs={'multiple': True, 'accept': '.jpg,.jpeg,.png,image/*'}
+            attrs={
+                'multiple': True,
+                'accept': '.jpg,.jpeg,.png,image/*',
+                'data-photo-preview': 'followup-photo-preview',
+                'data-photo-error': 'followup-photo-error',
+            }
         ),
+        help_text='รับเฉพาะไฟล์ JPG, JPEG หรือ PNG ขนาดไม่เกิน 5 MB ต่อรูป',
         error_messages={'required': 'กรุณาอัปโหลดรูปถ่ายที่อยู่อาศัย 1-5 รูป'},
     )
 

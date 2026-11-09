@@ -3,36 +3,103 @@
 {% block title %}จองคิวสัมภาษณ์{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h1 class="h4 mb-3">จองคิวสัมภาษณ์</h1>
-                <p class="mb-3">สุนัข: <strong>{{ dog.name }}</strong></p>
-                {% if form.non_field_errors %}
-                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-                {% endif %}
-                <form method="post" enctype="multipart/form-data" novalidate>
-                    {% csrf_token %}
-                    {% for field in form %}
-                        <div class="mb-3">
-                            <label class="form-label" for="{{ field.id_for_label }}">
-                                {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
-                            </label>
-                            {{ field }}
-                            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-                            {% for error in field.errors %}
-                                <div class="text-danger small">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                    {% endfor %}
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">ยืนยันการจอง</button>
-                        <a class="btn btn-outline-secondary" href="{% url 'public_dog_detail' dog.pk %}">ยกเลิก</a>
-                    </div>
-                </form>
-            </div>
+<div class="form-flow">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1">จองคิวสัมภาษณ์</h1>
+            <p class="text-muted mb-0">สุนัข: <strong>{{ dog.name }}</strong></p>
         </div>
+        <a class="btn btn-link px-0" href="{% url 'public_dog_detail' dog.pk %}">กลับไปยังหน้าสุนัข</a>
     </div>
+
+    <ol class="flow-steps" aria-label="ขั้นตอนการจองคิว">
+        <li>ข้อมูลส่วนตัว</li>
+        <li>ที่อยู่อาศัย</li>
+        <li>การประเมิน</li>
+        <li>นัดหมายและยืนยัน</li>
+    </ol>
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" novalidate data-loading-form>
+        {% csrf_token %}
+
+        <section class="form-section" aria-labelledby="booking-step-1">
+            <h2 class="form-section-title" id="booking-step-1">
+                <span class="form-section-num">01</span> ข้อมูลส่วนตัว
+            </h2>
+            {% include 'includes/form_field.html' with field=form.full_name %}
+            {% include 'includes/form_field.html' with field=form.phone %}
+            {% include 'includes/form_field.html' with field=form.address %}
+        </section>
+
+        <section class="form-section" aria-labelledby="booking-step-2">
+            <h2 class="form-section-title" id="booking-step-2">
+                <span class="form-section-num">02</span> ข้อมูลที่อยู่อาศัย
+            </h2>
+            {% include 'includes/form_field.html' with field=form.housing_type %}
+            {% include 'includes/form_field.html' with field=form.household_members %}
+            {% include 'includes/form_field.html' with field=form.has_other_pets %}
+        </section>
+
+        <section class="form-section" aria-labelledby="booking-step-3">
+            <h2 class="form-section-title" id="booking-step-3">
+                <span class="form-section-num">03</span> การประเมินเบื้องต้น
+            </h2>
+            {% include 'includes/form_field.html' with field=form.experience %}
+            {% include 'includes/form_field.html' with field=form.motivation %}
+            {% include 'includes/form_field.html' with field=form.agree_home_visit %}
+        </section>
+
+        <section class="form-section" aria-labelledby="booking-step-4">
+            <h2 class="form-section-title" id="booking-step-4">
+                <span class="form-section-num">04</span> นัดหมายและยืนยัน
+            </h2>
+            {% include 'includes/form_field.html' with field=form.scheduled_at %}
+
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.housing_photos.id_for_label }}">
+                    {{ form.housing_photos.label }} <span class="text-danger">*</span>
+                </label>
+                {{ form.housing_photos }}
+                {% if form.housing_photos.help_text %}
+                    <div class="form-text">{{ form.housing_photos.help_text }}</div>
+                {% endif %}
+                <div id="housing-photo-error" class="text-danger small d-none" role="alert"></div>
+                {% for error in form.housing_photos.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+                <div id="housing-photo-preview" class="photo-preview" aria-live="polite"></div>
+            </div>
+
+            {% if form.pdpa_consent %}
+                <div class="pdpa-box">
+                    <div class="form-check">
+                        {{ form.pdpa_consent }}
+                        <label class="form-check-label" for="{{ form.pdpa_consent.id_for_label }}">
+                            {{ form.pdpa_consent.label }}
+                        </label>
+                    </div>
+                    <div class="form-text mt-2">
+                        {% if form.pdpa_consent.field.disabled %}
+                            คุณได้ให้ความยินยอมตาม PDPA ไว้แล้วระหว่างการสมัครสมาชิก
+                        {% endif %}
+                        ข้อมูลส่วนบุคคลและภาพที่อยู่อาศัยจะถูกจัดเก็บเพื่อการคัดกรองผู้รับเลี้ยงเท่านั้น
+                        และจะไม่ถูกเปิดเผยต่อบุคคลภายนอก
+                    </div>
+                    {% for error in form.pdpa_consent.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </section>
+
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <button type="submit" class="btn btn-primary" data-loading-text="กำลังส่งข้อมูล...">ยืนยันการจอง</button>
+            <a class="btn btn-outline-secondary" href="{% url 'public_dog_detail' dog.pk %}">ยกเลิก</a>
+        </div>
+    </form>
 </div>
 {% endblock %}

@@ -3,34 +3,82 @@
 {% block title %}{% if is_edit %}แก้ไขสุนัข{% else %}เพิ่มสุนัข{% endif %}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-9 col-lg-7">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h1 class="h4 mb-3">{% if is_edit %}แก้ไขข้อมูลสุนัข{% else %}เพิ่มข้อมูลสุนัข{% endif %}</h1>
-                {% if form.non_field_errors %}
-                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-                {% endif %}
-                <form method="post" enctype="multipart/form-data" novalidate>
-                    {% csrf_token %}
-                    {% for field in form %}
-                        <div class="mb-3{% if field.field.widget.input_type == 'checkbox' %} form-check{% endif %}">
-                            {% if field.field.widget.input_type == 'checkbox' %}
-                                {{ field }}
-                                <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                            {% else %}
-                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                {{ field }}
-                            {% endif %}
-                            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-                            {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
-                        </div>
-                    {% endfor %}
-                    <button type="submit" class="btn btn-primary">บันทึก</button>
-                    <a class="btn btn-link" href="{% url 'dog_list' %}">ยกเลิก</a>
-                </form>
-            </div>
+<div class="form-flow">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1">{% if is_edit %}แก้ไขข้อมูลสุนัข{% else %}เพิ่มข้อมูลสุนัข{% endif %}</h1>
+            <p class="text-muted mb-0">
+                {% if is_edit %}ปรับปรุงข้อมูลของ {{ dog.name }}{% else %}บันทึกข้อมูลสุนัขตัวใหม่เข้าสู่ระบบ{% endif %}
+            </p>
         </div>
+        <a class="btn btn-link px-0" href="{% url 'dog_list' %}">กลับไปยังรายการ</a>
     </div>
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" novalidate data-loading-form>
+        {% csrf_token %}
+
+        <section class="form-section" aria-labelledby="dog-step-1">
+            <h2 class="form-section-title" id="dog-step-1">
+                <span class="form-section-num">01</span> ข้อมูลพื้นฐาน
+            </h2>
+            {% include 'includes/form_field.html' with field=form.name %}
+            {% include 'includes/form_field.html' with field=form.breed %}
+            {% include 'includes/form_field.html' with field=form.sex %}
+            {% include 'includes/form_field.html' with field=form.age_months %}
+            {% include 'includes/form_field.html' with field=form.size %}
+            {% include 'includes/form_field.html' with field=form.color %}
+        </section>
+
+        <section class="form-section" aria-labelledby="dog-step-2">
+            <h2 class="form-section-title" id="dog-step-2">
+                <span class="form-section-num">02</span> รายละเอียดและสถานะ
+            </h2>
+            {% include 'includes/form_field.html' with field=form.description %}
+            {% include 'includes/form_field.html' with field=form.status %}
+            {% include 'includes/form_field.html' with field=form.intake_date %}
+        </section>
+
+        <section class="form-section" aria-labelledby="dog-step-3">
+            <h2 class="form-section-title" id="dog-step-3">
+                <span class="form-section-num">03</span> ข้อมูลสุขภาพ
+            </h2>
+            {% include 'includes/form_field.html' with field=form.vaccinated %}
+            {% include 'includes/form_field.html' with field=form.sterilized %}
+        </section>
+
+        <section class="form-section" aria-labelledby="dog-step-4">
+            <h2 class="form-section-title" id="dog-step-4">
+                <span class="form-section-num">04</span> รูปภาพ
+            </h2>
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.photo.id_for_label }}">{{ form.photo.label }}</label>
+                {{ form.photo }}
+                {% if form.photo.help_text %}
+                    <div class="form-text">{{ form.photo.help_text }}</div>
+                {% endif %}
+                <div id="dog-photo-error" class="text-danger small d-none" role="alert"></div>
+                {% for error in form.photo.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+                <div id="dog-photo-preview" class="photo-preview" aria-live="polite">
+                    {% if is_edit and dog.photo %}
+                        <figure class="photo-preview-item">
+                            <img src="{{ dog.photo.url }}" alt="รูปปัจจุบันของ {{ dog.name }}">
+                            <figcaption>รูปปัจจุบัน</figcaption>
+                        </figure>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <button type="submit" class="btn btn-primary" data-loading-text="กำลังบันทึก...">บันทึก</button>
+            <a class="btn btn-link" href="{% url 'dog_list' %}">ยกเลิก</a>
+        </div>
+    </form>
 </div>
 {% endblock %}

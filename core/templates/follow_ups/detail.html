@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}การติดตามผล {{ follow_up.day_offset }} วัน{% endblock %}
 
@@ -18,7 +19,7 @@
             <dt class="col-sm-3">วันครบกำหนด</dt>
             <dd class="col-sm-9">{{ follow_up.due_date|date:'d/m/Y' }}</dd>
             <dt class="col-sm-3">สถานะ</dt>
-            <dd class="col-sm-9"><span class="badge bg-secondary">{{ follow_up.get_status_display }}</span></dd>
+            <dd class="col-sm-9"><span class="status-pill {{ follow_up.status|status_class }}">{{ follow_up.get_status_display }}</span></dd>
             {% if follow_up.submitted_at %}
                 <dt class="col-sm-3">ส่งข้อมูลเมื่อ</dt>
                 <dd class="col-sm-9">{{ follow_up.submitted_at|date:'d/m/Y H:i' }}</dd>
@@ -47,27 +48,38 @@
 {% endif %}
 
 {% if follow_up.status == 'pending' %}
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <h2 class="h5 mb-3">ส่งข้อมูลการติดตามผล</h2>
-            {% if form.non_field_errors %}
-                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-            {% endif %}
-            <form method="post" action="{% url 'followup_submit' follow_up.pk %}" enctype="multipart/form-data" novalidate>
-                {% csrf_token %}
-                {% for field in form %}
+    <div class="form-flow mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="h5 mb-1">ส่งข้อมูลการติดตามผล</h2>
+                <p class="text-muted small mb-3">
+                    แนบรูปถ่ายที่อยู่อาศัยและสภาพสุนัขตามกำหนดนัด เพื่อให้เจ้าหน้าที่ติดตามสวัสดิภาพได้
+                </p>
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <form method="post" action="{% url 'followup_submit' follow_up.pk %}" enctype="multipart/form-data" novalidate data-loading-form>
+                    {% csrf_token %}
+                    {% include 'includes/form_field.html' with field=form.notes %}
+
                     <div class="mb-3">
-                        <label class="form-label" for="{{ field.id_for_label }}">
-                            {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
+                        <label class="form-label" for="{{ form.photos.id_for_label }}">
+                            {{ form.photos.label }} <span class="text-danger">*</span>
                         </label>
-                        {{ field }}
-                        {% for error in field.errors %}
+                        {{ form.photos }}
+                        {% if form.photos.help_text %}
+                            <div class="form-text">{{ form.photos.help_text }}</div>
+                        {% endif %}
+                        <div id="followup-photo-error" class="text-danger small d-none" role="alert"></div>
+                        {% for error in form.photos.errors %}
                             <div class="text-danger small">{{ error }}</div>
                         {% endfor %}
+                        <div id="followup-photo-preview" class="photo-preview" aria-live="polite"></div>
                     </div>
-                {% endfor %}
-                <button type="submit" class="btn btn-primary">ส่งข้อมูลการติดตามผล</button>
-            </form>
+
+                    <button type="submit" class="btn btn-primary" data-loading-text="กำลังส่งข้อมูล...">ส่งข้อมูลการติดตามผล</button>
+                </form>
+            </div>
         </div>
     </div>
 {% endif %}
