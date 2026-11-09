@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}บัญชีถูกล็อกชั่วคราว - StayMatch{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4 text-center">
+                    <div class="display-5 mb-3" aria-hidden="true">🔒</div>
+                    <h1 class="h3 mb-3">บัญชีถูกล็อกชั่วคราว</h1>
+                    <p class="mb-2">
+                        คุณเข้าสู่ระบบผิดพลาดหลายครั้งเกินไป
+                        (สูงสุด {{ failure_limit }} ครั้ง)
+                    </p>
+                    <p class="mb-4">
+                        เพื่อความปลอดภัย กรุณารอประมาณ 15 นาที
+                        แล้วลองเข้าสู่ระบบอีกครั้ง
+                    </p>
+                    <a class="btn btn-primary" href="{% url 'login' %}">กลับไปหน้าเข้าสู่ระบบ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

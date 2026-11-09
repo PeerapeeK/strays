@@ -10,22 +10,47 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
+from datetime import timedelta
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
+def _env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-&igja8c4a4u0s8*49lrhv+(c7zzdjv=!-_-c1rv(ba$8t+_mxa'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+def _env_list(name, default=''):
+    return [
+        item.strip()
+        for item in os.environ.get(name, default).split(',')
+        if item.strip()
+    ]
 
-ALLOWED_HOSTS = ["*"]
+
+# Deployment settings are read from the environment (see deploy/strays.env.example).
+DEBUG = _env_bool('DEBUG', True)
+
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured(
+            'SECRET_KEY environment variable must be set when DEBUG is False.'
+        )
+    # Development-only fallback so local runs work without an env file.
+    SECRET_KEY = 'django-insecure-development-only-key-change-me'
+
+ALLOWED_HOSTS = _env_list(
+    'ALLOWED_HOSTS', '*' if DEBUG else 'localhost,127.0.0.1'
+)
+CSRF_TRUSTED_ORIGINS = _env_list('CSRF_TRUSTED_ORIGINS')
 
 
 # Application definition
@@ -38,6 +63,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'simple_history',
+    'axes',
     'core',
 ]
 
@@ -50,6 +76,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -111,6 +138,19 @@ PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.ScryptPasswordHasher',
 ]
 
+# django-axes: lock the account/IP pair after five failures for fifteen minutes.
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_LOCKOUT_PARAMETERS = [['username', 'ip_address']]
+AXES_RESET_ON_SUCCESS = True
+AXES_CLIENT_IP_CALLABLE = 'core.axes.client_ip'
+AXES_LOCKOUT_TEMPLATE = 'registration/lockout.html'
+AXES_HTTP_RESPONSE_CODE = 403
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
@@ -127,11 +167,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files (uploads)
-MEDIA_URL = 'media/'
+# Media files (uploads). Only media/dogs/ is public; everything else is served
+# through the permission-checked /files/<kind>/<id>/ view.
+MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 
@@ -171,3 +213,19 @@ PUSH_RETRY_DELAY = 60
 
 # Reminder window (days ahead) used by the queue_reminders command.
 REMINDER_DAYS = 3
+
+
+# Reverse-proxy/production hardening. The app only receives traffic from nginx
+# on the loopback interface, and nginx forwards Cloudflare's headers.
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = _env_bool('SECURE_SSL_REDIRECT', True)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '3600'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool(
+        'SECURE_HSTS_INCLUDE_SUBDOMAINS', True
+    )
+    SECURE_HSTS_PRELOAD = _env_bool('SECURE_HSTS_PRELOAD', True)
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
