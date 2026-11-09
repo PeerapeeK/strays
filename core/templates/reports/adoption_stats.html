@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}รายงานการรับอุปการะ{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 mb-0">รายงานการรับอุปการะ</h1>
+    <a class="btn btn-success" href="{% url 'adoption_stats_csv' %}?start={{ start_value }}&end={{ end_value }}">ส่งออก CSV</a>
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-4">
+    <div class="col-md-4">
+        <label class="form-label" for="start">ตั้งแต่วันที่</label>
+        <input type="date" class="form-control" id="start" name="start" value="{{ start_value }}">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="end">ถึงวันที่</label>
+        <input type="date" class="form-control" id="end" name="end" value="{{ end_value }}">
+    </div>
+    <div class="col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-fill">กรองข้อมูล</button>
+        <a class="btn btn-outline-secondary" href="{% url 'adoption_stats' %}">ล้าง</a>
+    </div>
+</form>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="text-muted small">สัญญาทั้งหมด</div>
+            <div class="h3 mb-0">{{ totals.total }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="text-muted small">มีผลบังคับใช้</div>
+            <div class="h3 mb-0">{{ totals.active }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="text-muted small">ยอมรับสัญญาแล้ว</div>
+            <div class="h3 mb-0">{{ totals.acknowledged }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="text-muted small">สุนัขที่ถูกรับอุปการะ</div>
+            <div class="h3 mb-0">{{ totals.dogs }}</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h2 class="h5">จำนวนการรับอุปการะรายเดือน</h2>
+        <canvas id="adoptionChart" height="110"></canvas>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h2 class="h5">ตารางรายเดือน</h2>
+        {% if monthly %}
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>เดือน</th>
+                            <th class="text-end">สัญญาทั้งหมด</th>
+                            <th class="text-end">มีผลบังคับใช้</th>
+                            <th class="text-end">ยอมรับแล้ว</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in monthly %}
+                            <tr>
+                                <td>{{ row.month|date:'m/Y' }}</td>
+                                <td class="text-end">{{ row.total }}</td>
+                                <td class="text-end">{{ row.active }}</td>
+                                <td class="text-end">{{ row.acknowledged }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info mb-0">ไม่พบข้อมูลในช่วงวันที่ที่เลือก</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h2 class="h5">แยกตามสถานะสัญญา</h2>
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead>
+                    <tr><th>สถานะ</th><th class="text-end">จำนวน</th></tr>
+                </thead>
+                <tbody>
+                    {% for row in status_rows %}
+                        <tr>
+                            <td>{{ row.label }}</td>
+                            <td class="text-end">{{ row.total }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{{ monthly_labels|json_script:"adoption-monthly-labels" }}
+{{ monthly_totals|json_script:"adoption-monthly-totals" }}
+{{ monthly_active|json_script:"adoption-monthly-active" }}
+{{ monthly_acknowledged|json_script:"adoption-monthly-acknowledged" }}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    var canvas = document.getElementById('adoptionChart');
+    if (!canvas || typeof Chart === 'undefined') { return; }
+    var read = function (id) {
+        return JSON.parse(document.getElementById(id).textContent);
+    };
+    new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: read('adoption-monthly-labels'),
+            datasets: [
+                {
+                    label: 'สัญญาทั้งหมด',
+                    data: read('adoption-monthly-totals'),
+                    backgroundColor: 'rgba(13, 110, 253, 0.7)'
+                },
+                {
+                    label: 'มีผลบังคับใช้',
+                    data: read('adoption-monthly-active'),
+                    backgroundColor: 'rgba(25, 135, 84, 0.7)'
+                },
+                {
+                    label: 'ยอมรับแล้ว',
+                    data: read('adoption-monthly-acknowledged'),
+                    backgroundColor: 'rgba(255, 193, 7, 0.7)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+})();
+</script>
+{% endblock %}

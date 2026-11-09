@@ -463,9 +463,11 @@ class AdoptionContract(models.Model):
 class FollowUp(models.Model):
     PENDING = 'pending'
     SUBMITTED = 'submitted'
+    OVERDUE = 'overdue'
     STATUS_CHOICES = [
         (PENDING, 'รอการส่งข้อมูล'),
         (SUBMITTED, 'ส่งข้อมูลแล้ว'),
+        (OVERDUE, 'เกินกำหนด'),
     ]
 
     contract = models.ForeignKey(

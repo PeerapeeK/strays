@@ -1,10 +1,15 @@
+import csv
 from datetime import timedelta
 
+from django.apps import apps
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
+from django.db.models.functions import TruncMonth
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -1014,3 +1019,249 @@ def homevisit_deny(request, pk):
         )
         messages.success(request, 'ปฏิเสธการเลื่อนนัดตรวจบ้านสำเร็จ')
     return redirect('staff_contract_detail', pk=home_visit.contract.pk)
+
+
+def _report_date_range(request):
+    start = parse_date(request.GET.get('start', ''))
+    end = parse_date(request.GET.get('end', ''))
+    return start, end
+
+
+def _adoption_report_data(start, end):
+    contracts = AdoptionContract.objects.all()
+    if start:
+        contracts = contracts.filter(start_date__gte=start)
+    if end:
+        contracts = contracts.filter(start_date__lte=end)
+
+    monthly = list(
+        contracts.annotate(month=TruncMonth('start_date'))
+        .values('month')
+        .annotate(
+            total=Count('pk'),
+            active=Count('pk', filter=Q(status=AdoptionContract.ACTIVE)),
+            acknowledged=Count('pk', filter=Q(acknowledged_at__isnull=False)),
+        )
+        .order_by('month')
+    )
+
+    status_counts = {
+        row['status']: row['total']
+        for row in contracts.values('status').annotate(total=Count('pk'))
+    }
+    status_rows = [
+        {'value': value, 'label': label, 'total': status_counts.get(value, 0)}
+        for value, label in AdoptionContract.STATUS_CHOICES
+    ]
+
+    totals = {
+        'total': contracts.count(),
+        'active': contracts.filter(status=AdoptionContract.ACTIVE).count(),
+        'acknowledged': contracts.filter(acknowledged_at__isnull=False).count(),
+        'dogs': contracts.values('interview_request__dog').distinct().count(),
+    }
+    return monthly, status_rows, totals
+
+
+@role_required(STAFF, ADMIN)
+def adoption_stats(request):
+    start, end = _report_date_range(request)
+    monthly, status_rows, totals = _adoption_report_data(start, end)
+
+    context = {
+        'start_value': request.GET.get('start', ''),
+        'end_value': request.GET.get('end', ''),
+        'monthly': monthly,
+        'status_rows': status_rows,
+        'totals': totals,
+        'monthly_labels': [
+            row['month'].strftime('%m/%Y') if row['month'] else '' for row in monthly
+        ],
+        'monthly_totals': [row['total'] for row in monthly],
+        'monthly_active': [row['active'] for row in monthly],
+        'monthly_acknowledged': [row['acknowledged'] for row in monthly],
+    }
+    return render(request, 'reports/adoption_stats.html', context)
+
+
+@role_required(STAFF, ADMIN)
+def adoption_stats_csv(request):
+    start, end = _report_date_range(request)
+    monthly, status_rows, totals = _adoption_report_data(start, end)
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="adoption_stats.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow(['เดือน', 'สัญญาทั้งหมด', 'มีผลบังคับใช้', 'ยอมรับแล้ว'])
+    for row in monthly:
+        writer.writerow([
+            row['month'].strftime('%m/%Y') if row['month'] else '',
+            row['total'],
+            row['active'],
+            row['acknowledged'],
+        ])
+    writer.writerow([])
+    writer.writerow(['สถานะ', 'จำนวน'])
+    for row in status_rows:
+        writer.writerow([row['label'], row['total']])
+    writer.writerow([])
+    writer.writerow(['รวมสัญญา', totals['total']])
+    writer.writerow(['สุนัขที่ถูกรับอุปการะ', totals['dogs']])
+    return response
+
+
+def _followup_report_data(start, end):
+    follow_ups = FollowUp.objects.all()
+    if start:
+        follow_ups = follow_ups.filter(due_date__gte=start)
+    if end:
+        follow_ups = follow_ups.filter(due_date__lte=end)
+
+    rows = list(
+        follow_ups.values('day_offset')
+        .annotate(
+            total=Count('pk'),
+            submitted=Count('pk', filter=Q(status=FollowUp.SUBMITTED)),
+            pending=Count('pk', filter=Q(status=FollowUp.PENDING)),
+            overdue=Count('pk', filter=Q(status=FollowUp.OVERDUE)),
+            evaluated=Count('pk', filter=Q(evaluation__isnull=False)),
+        )
+        .order_by('day_offset')
+    )
+
+    status_counts = {
+        row['status']: row['total']
+        for row in follow_ups.values('status').annotate(total=Count('pk'))
+    }
+    status_rows = [
+        {'value': value, 'label': label, 'total': status_counts.get(value, 0)}
+        for value, label in FollowUp.STATUS_CHOICES
+    ]
+    totals = {
+        'total': follow_ups.count(),
+        'submitted': follow_ups.filter(status=FollowUp.SUBMITTED).count(),
+        'pending': follow_ups.filter(status=FollowUp.PENDING).count(),
+        'overdue': follow_ups.filter(status=FollowUp.OVERDUE).count(),
+        'evaluated': follow_ups.filter(evaluation__isnull=False).count(),
+    }
+    return rows, status_rows, totals
+
+
+@role_required(STAFF, ADMIN)
+def followup_stats(request):
+    start, end = _report_date_range(request)
+    rows, status_rows, totals = _followup_report_data(start, end)
+
+    context = {
+        'start_value': request.GET.get('start', ''),
+        'end_value': request.GET.get('end', ''),
+        'rows': rows,
+        'status_rows': status_rows,
+        'totals': totals,
+        'offset_labels': [f'{row["day_offset"]} วัน' for row in rows],
+        'offset_submitted': [row['submitted'] for row in rows],
+        'offset_pending': [row['pending'] for row in rows],
+        'offset_overdue': [row['overdue'] for row in rows],
+    }
+    return render(request, 'reports/followup_stats.html', context)
+
+
+@role_required(STAFF, ADMIN)
+def followup_stats_csv(request):
+    start, end = _report_date_range(request)
+    rows, status_rows, totals = _followup_report_data(start, end)
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="followup_stats.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow([
+        'กำหนดติดตามผล (วัน)', 'ทั้งหมด', 'ส่งข้อมูลแล้ว', 'รอส่ง',
+        'เกินกำหนด', 'ประเมินแล้ว',
+    ])
+    for row in rows:
+        writer.writerow([
+            row['day_offset'],
+            row['total'],
+            row['submitted'],
+            row['pending'],
+            row['overdue'],
+            row['evaluated'],
+        ])
+    writer.writerow([])
+    writer.writerow(['สถานะ', 'จำนวน'])
+    for row in status_rows:
+        writer.writerow([row['label'], row['total']])
+    writer.writerow([])
+    writer.writerow(['รวมทั้งหมด', totals['total']])
+    writer.writerow(['ประเมินแล้ว', totals['evaluated']])
+    return response
+
+
+HISTORY_ACTIONS = (('+', 'เพิ่ม'), ('~', 'แก้ไข'), ('-', 'ลบ'))
+
+
+def _history_object_label(record):
+    for field in ('name', 'title', 'code', 'contract_no'):
+        value = getattr(record, field, None)
+        if value:
+            return str(value)
+    return f'#{record.id}'
+
+
+@role_required(ADMIN)
+def audit_log(request):
+    start, end = _report_date_range(request)
+    action = request.GET.get('action', '')
+    model_name = request.GET.get('model', '')
+
+    entries = []
+    model_choices = []
+    for model in apps.get_app_config('core').get_models():
+        history_model = getattr(getattr(model, 'history', None), 'model', None)
+        if history_model is None:
+            continue
+        model_choices.append((model._meta.label_lower, model._meta.verbose_name))
+        if model_name and model._meta.label_lower != model_name:
+            continue
+
+        history_qs = history_model.objects.select_related('history_user')
+        if start:
+            history_qs = history_qs.filter(history_date__date__gte=start)
+        if end:
+            history_qs = history_qs.filter(history_date__date__lte=end)
+        if action in dict(HISTORY_ACTIONS):
+            history_qs = history_qs.filter(history_type=action)
+
+        for record in history_qs:
+            entries.append({
+                'model': model._meta.verbose_name,
+                'model_label': model._meta.label_lower,
+                'object': _history_object_label(record),
+                'object_id': record.id,
+                'action': record.get_history_type_display(),
+                'action_code': record.history_type,
+                'user': (
+                    record.history_user.get_username()
+                    if record.history_user
+                    else '-'
+                ),
+                'date': record.history_date,
+            })
+
+    entries.sort(key=lambda entry: entry['date'], reverse=True)
+    paginator = Paginator(entries, 50)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'page_obj': page_obj,
+        'entries': page_obj.object_list,
+        'start_value': request.GET.get('start', ''),
+        'end_value': request.GET.get('end', ''),
+        'action': action,
+        'model_name': model_name,
+        'action_choices': HISTORY_ACTIONS,
+        'model_choices': sorted(model_choices, key=lambda item: item[1]),
+    }
+    return render(request, 'audit/log.html', context)

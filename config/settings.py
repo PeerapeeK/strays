@@ -155,3 +155,18 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+
+# Push notifications
+# When PUSH_PROVIDER_URL is empty the dispatcher runs in development mode:
+# notifications are marked as sent without making an HTTP request.
+
+PUSH_PROVIDER_URL = ''
+PUSH_TIMEOUT = 10
+# One initial attempt plus three retries (NFR 9).
+PUSH_MAX_ATTEMPTS = 4
+# Base delay in seconds; each retry backs off exponentially.
+PUSH_RETRY_DELAY = 60
+
+# Reminder window (days ahead) used by the queue_reminders command.
+REMINDER_DAYS = 3

@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}บันทึกการใช้งาน (Audit Log){% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">บันทึกการใช้งาน (Audit Log)</h1>
+
+<form method="get" class="row g-2 align-items-end mb-4">
+    <div class="col-md-2">
+        <label class="form-label" for="start">ตั้งแต่วันที่</label>
+        <input type="date" class="form-control" id="start" name="start" value="{{ start_value }}">
+    </div>
+    <div class="col-md-2">
+        <label class="form-label" for="end">ถึงวันที่</label>
+        <input type="date" class="form-control" id="end" name="end" value="{{ end_value }}">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label" for="model">โมเดล</label>
+        <select class="form-select" id="model" name="model">
+            <option value="">ทั้งหมด</option>
+            {% for value, label in model_choices %}
+                <option value="{{ value }}" {% if model_name == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label" for="action">การกระทำ</label>
+        <select class="form-select" id="action" name="action">
+            <option value="">ทั้งหมด</option>
+            {% for value, label in action_choices %}
+                <option value="{{ value }}" {% if action == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-fill">กรองข้อมูล</button>
+        <a class="btn btn-outline-secondary" href="{% url 'audit_log' %}">ล้าง</a>
+    </div>
+</form>
+
+{% if entries %}
+    <div class="table-responsive">
+        <table class="table table-striped align-middle bg-white">
+            <thead>
+                <tr>
+                    <th>วันและเวลา</th>
+                    <th>โมเดล</th>
+                    <th>รายการ</th>
+                    <th>การกระทำ</th>
+                    <th>ผู้ใช้</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                    <tr>
+                        <td>{{ entry.date|date:'d/m/Y H:i:s' }}</td>
+                        <td>{{ entry.model }}</td>
+                        <td>{{ entry.object }} <span class="text-muted small">#{{ entry.object_id }}</span></td>
+                        <td>
+                            <span class="badge {% if entry.action_code == '+' %}bg-success{% elif entry.action_code == '-' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                {{ entry.action }}
+                            </span>
+                        </td>
+                        <td>{{ entry.user }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+        <nav aria-label="Audit log pagination">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                    <a class="page-link" href="?page={% if page_obj.has_previous %}{{ page_obj.previous_page_number }}{% else %}1{% endif %}&start={{ start_value|urlencode }}&end={{ end_value|urlencode }}&action={{ action|urlencode }}&model={{ model_name|urlencode }}">ก่อนหน้า</a>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">หน้า {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="?page={% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}{{ page_obj.number }}{% endif %}&start={{ start_value|urlencode }}&end={{ end_value|urlencode }}&action={{ action|urlencode }}&model={{ model_name|urlencode }}">ถัดไป</a>
+                </li>
+            </ul>
+        </nav>
+    {% endif %}
+{% else %}
+    <div class="alert alert-info">ไม่พบบันทึกการใช้งานตามเงื่อนไขที่เลือก</div>
+{% endif %}
+{% endblock %}

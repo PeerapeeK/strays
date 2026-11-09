@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}รายงานการติดตามผล{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 mb-0">รายงานการติดตามผล</h1>
+    <a class="btn btn-success" href="{% url 'followup_stats_csv' %}?start={{ start_value }}&end={{ end_value }}">ส่งออก CSV</a>
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-4">
+    <div class="col-md-4">
+        <label class="form-label" for="start">ตั้งแต่วันครบกำหนด</label>
+        <input type="date" class="form-control" id="start" name="start" value="{{ start_value }}">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="end">ถึงวันครบกำหนด</label>
+        <input type="date" class="form-control" id="end" name="end" value="{{ end_value }}">
+    </div>
+    <div class="col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-fill">กรองข้อมูล</button>
+        <a class="btn btn-outline-secondary" href="{% url 'followup_stats' %}">ล้าง</a>
+    </div>
+</form>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="text-muted small">ทั้งหมด</div>
+            <div class="h3 mb-0">{{ totals.total }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="text-muted small">ส่งข้อมูลแล้ว</div>
+            <div class="h3 mb-0">{{ totals.submitted }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="text-muted small">รอส่ง</div>
+            <div class="h3 mb-0">{{ totals.pending }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="text-muted small">เกินกำหนด</div>
+            <div class="h3 mb-0">{{ totals.overdue }}</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h2 class="h5">สถานะการติดตามผลตามกำหนด</h2>
+        <canvas id="followupChart" height="110"></canvas>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h2 class="h5">ตารางตามกำหนดติดตามผล</h2>
+        {% if rows %}
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>กำหนดติดตามผล</th>
+                            <th class="text-end">ทั้งหมด</th>
+                            <th class="text-end">ส่งข้อมูลแล้ว</th>
+                            <th class="text-end">รอส่ง</th>
+                            <th class="text-end">เกินกำหนด</th>
+                            <th class="text-end">ประเมินแล้ว</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr>
+                                <td>{{ row.day_offset }} วัน</td>
+                                <td class="text-end">{{ row.total }}</td>
+                                <td class="text-end">{{ row.submitted }}</td>
+                                <td class="text-end">{{ row.pending }}</td>
+                                <td class="text-end">{{ row.overdue }}</td>
+                                <td class="text-end">{{ row.evaluated }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info mb-0">ไม่พบข้อมูลในช่วงวันที่ที่เลือก</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h2 class="h5">แยกตามสถานะการติดตามผล</h2>
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead>
+                    <tr><th>สถานะ</th><th class="text-end">จำนวน</th></tr>
+                </thead>
+                <tbody>
+                    {% for row in status_rows %}
+                        <tr>
+                            <td>{{ row.label }}</td>
+                            <td class="text-end">{{ row.total }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{{ offset_labels|json_script:"followup-offset-labels" }}
+{{ offset_submitted|json_script:"followup-offset-submitted" }}
+{{ offset_pending|json_script:"followup-offset-pending" }}
+{{ offset_overdue|json_script:"followup-offset-overdue" }}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    var canvas = document.getElementById('followupChart');
+    if (!canvas || typeof Chart === 'undefined') { return; }
+    var read = function (id) {
+        return JSON.parse(document.getElementById(id).textContent);
+    };
+    new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: read('followup-offset-labels'),
+            datasets: [
+                {
+                    label: 'ส่งข้อมูลแล้ว',
+                    data: read('followup-offset-submitted'),
+                    backgroundColor: 'rgba(25, 135, 84, 0.7)'
+                },
+                {
+                    label: 'รอส่ง',
+                    data: read('followup-offset-pending'),
+                    backgroundColor: 'rgba(255, 193, 7, 0.7)'
+                },
+                {
+                    label: 'เกินกำหนด',
+                    data: read('followup-offset-overdue'),
+                    backgroundColor: 'rgba(220, 53, 69, 0.7)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+})();
+</script>
+{% endblock %}

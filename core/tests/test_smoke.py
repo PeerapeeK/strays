@@ -128,6 +128,11 @@ class SmokeTests(TestCase):
             reverse('staff_followup_list'): 200,
             reverse('staff_followup_detail', args=[self.follow_up.pk]): 200,
             reverse('staff_followup_evaluate', args=[self.follow_up.pk]): 200,
+            reverse('adoption_stats'): 200,
+            reverse('followup_stats'): 200,
+            reverse('adoption_stats_csv'): 200,
+            reverse('followup_stats_csv'): 200,
+            reverse('audit_log'): 200,
         }
         for url, status in expected.items():
             with self.subTest(url=url):
@@ -156,6 +161,10 @@ class SmokeTests(TestCase):
             reverse('staff_followup_list'): 200,
             reverse('staff_followup_detail', args=[self.follow_up.pk]): 200,
             reverse('staff_followup_evaluate', args=[self.follow_up.pk]): 200,
+            reverse('adoption_stats'): 200,
+            reverse('followup_stats'): 200,
+            reverse('adoption_stats_csv'): 200,
+            reverse('followup_stats_csv'): 200,
         }
         for url, status in expected.items():
             with self.subTest(url=url):
@@ -180,3 +189,22 @@ class SmokeTests(TestCase):
         for url, status in expected.items():
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, status)
+
+    def test_report_and_audit_permissions(self):
+        self.assertTrue(
+            self.client.login(username='smoke_adopter', password=PASSWORD)
+        )
+        for url in (
+            reverse('adoption_stats'),
+            reverse('followup_stats'),
+            reverse('adoption_stats_csv'),
+            reverse('followup_stats_csv'),
+            reverse('audit_log'),
+        ):
+            with self.subTest(role='adopter', url=url):
+                self.assertEqual(self.client.get(url).status_code, 403)
+
+        self.assertTrue(self.client.login(username='smoke_staff', password=PASSWORD))
+        self.assertEqual(
+            self.client.get(reverse('audit_log')).status_code, 403
+        )

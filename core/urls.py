@@ -118,4 +118,17 @@ urlpatterns = [
     path('staff/dogs/create/', views.dog_create, name='dog_create'),
     path('staff/dogs/<int:pk>/', views.dog_detail, name='dog_detail'),
     path('staff/dogs/<int:pk>/edit/', views.dog_edit, name='dog_edit'),
+    path('reports/adoption-stats/', views.adoption_stats, name='adoption_stats'),
+    path(
+        'reports/adoption-stats/csv/',
+        views.adoption_stats_csv,
+        name='adoption_stats_csv',
+    ),
+    path('reports/followup-stats/', views.followup_stats, name='followup_stats'),
+    path(
+        'reports/followup-stats/csv/',
+        views.followup_stats_csv,
+        name='followup_stats_csv',
+    ),
+    path('audit-log/', views.audit_log, name='audit_log'),
 ]
