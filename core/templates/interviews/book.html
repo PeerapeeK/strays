@@ -1,16 +1,17 @@
 {% extends 'base.html' %}
 
-{% block title %}จองคิวสัมภาษณ์{% endblock %}
+{% block title %}สมัครรับเลี้ยง: {{ dog.name }} - StayMatch{% endblock %}
 
 {% block content %}
-<div class="form-flow">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
-        <div>
-            <h1 class="h3 mb-1">จองคิวสัมภาษณ์</h1>
-            <p class="text-muted mb-0">สุนัข: <strong>{{ dog.name }}</strong></p>
+<div class="auth-shell">
+    <div class="auth-card">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+            <div>
+                <h1 class="auth-title mb-2">สมัครรับเลี้ยง: <span class="dog-name-accent">{{ dog.name }}</span></h1>
+                <p class="auth-subtitle">กรอกข้อมูลเพื่อจองคิวสัมภาษณ์</p>
+            </div>
+            <a class="btn btn-link px-0" href="{% url 'public_dog_detail' dog.pk %}">กลับไปยังหน้าสุนัข</a>
         </div>
-        <a class="btn btn-link px-0" href="{% url 'public_dog_detail' dog.pk %}">กลับไปยังหน้าสุนัข</a>
-    </div>
 
     <ol class="flow-steps" aria-label="ขั้นตอนการจองคิว">
         <li>ข้อมูลส่วนตัว</li>
@@ -83,5 +84,6 @@
             <a class="btn btn-outline-secondary" href="{% url 'public_dog_detail' dog.pk %}">ยกเลิก</a>
         </div>
     </form>
+    </div>
 </div>
 {% endblock %}

@@ -1,66 +1,58 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
-{% block title %}สุนัขรอรับอุปการะ{% endblock %}
+{% block title %}ค้นหาน้องหมา - StayMatch{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-3">สุนัขรอรับอุปการะ</h1>
+<div class="dogs-page">
+    <div class="dogs-header">
+        <h1 class="dogs-title">ค้นหาน้องหมาที่รอคอยบ้าน</h1>
+        <p class="dogs-subtitle">เลือกดูน้องหมาที่พร้อมสำหรับการรับเลี้ยง และกรอกข้อมูลเพื่อประเมินความพร้อมของคุณ</p>
 
-<form method="get" class="row g-2 align-items-end mb-4">
-    <div class="col-md-5">
-        <label class="form-label" for="q">ค้นหา</label>
-        <input type="text" class="form-control" id="q" name="q" value="{{ q }}" placeholder="ชื่อ พันธุ์ สี หรือรายละเอียด">
-    </div>
-    <div class="col-md-3">
-        <label class="form-label" for="sex">เพศ</label>
-        <select class="form-select" id="sex" name="sex">
-            <option value="">ทั้งหมด</option>
-            {% for value, label in sex_choices %}
-                <option value="{{ value }}" {% if sex == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-2">
-        <label class="form-label" for="size">ขนาด</label>
-        <select class="form-select" id="size" name="size">
-            <option value="">ทั้งหมด</option>
-            {% for value, label in size_choices %}
-                <option value="{{ value }}" {% if size == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-2 d-grid">
-        <button type="submit" class="btn btn-primary">ค้นหา</button>
-    </div>
-</form>
-
-<div class="row g-3">
-    {% for dog in dogs %}
-        <div class="col-sm-6 col-lg-4">
-            <div class="card h-100 shadow-sm">
-                {% if dog.photo %}
-                    <img src="{{ dog.photo.url }}" class="card-img-top" alt="{{ dog.name }}" style="height: 220px; object-fit: cover;">
-                {% else %}
-                    <div class="bg-secondary-subtle d-flex align-items-center justify-content-center" style="height: 220px;">
-                        <span class="text-muted">ไม่มีรูปภาพ</span>
-                    </div>
-                {% endif %}
-                <div class="card-body">
-                    <h2 class="h5 card-title mb-1">{{ dog.name }}</h2>
-                    <p class="text-muted mb-2">{{ dog.breed|default:'ไม่ระบุพันธุ์' }}</p>
-                    <ul class="list-unstyled small mb-3">
-                        <li>เพศ: {{ dog.get_sex_display }}</li>
-                        <li>ขนาด: {{ dog.get_size_display }}</li>
-                        <li>อายุ: {{ dog.age_months }} เดือน</li>
-                        <li>สี: {{ dog.color|default:'-' }}</li>
-                    </ul>
-                    <a class="btn btn-primary btn-sm" href="{% url 'public_dog_detail' dog.pk %}">ดูรายละเอียด</a>
-                </div>
+        <form method="get" class="dog-search-form" role="search">
+            <div class="dog-search-bar">
+                <input type="text" name="q" value="{{ q }}" class="dog-search-input"
+                       placeholder="ค้นหาด้วยชื่อ, สายพันธุ์, หรือเพศ..." aria-label="ค้นหาสุนัข">
+                <button type="submit" class="dog-search-btn" aria-label="ค้นหา">🔍</button>
             </div>
-        </div>
-    {% empty %}
-        <div class="col-12">
+            <div class="dog-filter-row">
+                <select name="sex" class="dog-filter-pill" onchange="this.form.submit()" aria-label="กรองตามเพศ">
+                    <option value="">เพศทั้งหมด</option>
+                    {% for value, label in sex_choices %}
+                        <option value="{{ value }}" {% if sex == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <select name="size" class="dog-filter-pill" onchange="this.form.submit()" aria-label="กรองตามขนาด">
+                    <option value="">ขนาดทั้งหมด</option>
+                    {% for value, label in size_choices %}
+                        <option value="{{ value }}" {% if size == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <div class="dog-grid">
+        {% for dog in dogs %}
+            <article class="dog-card">
+                <div class="dog-card-media {% cycle 'tone-yellow' 'tone-pink' 'tone-line' %}">
+                    {% if dog.photo %}
+                        <img src="{{ dog.photo.url }}" alt="{{ dog.name }}">
+                    {% else %}
+                        <span aria-hidden="true">{% cycle '🐶' '🐕' '🐩' '🦮' '🐕‍🦺' %}</span>
+                    {% endif %}
+                </div>
+                <div class="dog-card-body">
+                    <h2 class="dog-card-name">{{ dog.name }}</h2>
+                    <p class="dog-card-meta">
+                        {{ dog.breed|default:'ไม่ระบุพันธุ์' }} · {{ dog.get_sex_display }} · {{ dog.age_months|age_th }}
+                    </p>
+                </div>
+                <a class="dog-card-btn" href="{% url 'interview_book' dog.pk %}">สมัครรับเลี้ยง</a>
+            </article>
+        {% empty %}
             <div class="alert alert-info">ไม่พบสุนัขที่ตรงกับเงื่อนไข</div>
-        </div>
-    {% endfor %}
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}

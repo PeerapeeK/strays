@@ -36,6 +36,22 @@ def alert_class(value):
     return f'alert-{tag} bg-{tag}-subtle'
 
 
+@register.filter
+def age_th(months):
+    try:
+        months = int(months)
+    except (TypeError, ValueError):
+        return ''
+    if months <= 0:
+        return 'ไม่ทราบอายุ'
+    years, remainder = divmod(months, 12)
+    if years and remainder:
+        return f'{years} ปี {remainder} เดือน'
+    if years:
+        return f'{years} ปี'
+    return f'{remainder} เดือน'
+
+
 def _initials(full_name, username):
     name = (full_name or '').strip()
     if name:

@@ -96,6 +96,8 @@ class SmokeTests(TestCase):
             reverse('register'),
             reverse('public_dog_list'),
             reverse('public_dog_detail', args=[self.dog.pk]),
+            reverse('privacy'),
+            reverse('terms'),
         )
         for url in urls:
             with self.subTest(url=url):
@@ -216,17 +218,18 @@ class SmokeTests(TestCase):
 
 
 class HomePageTests(TestCase):
-    def test_home_without_dogs(self):
+    def test_home_without_dogs_shows_emoji_fallback(self):
         response = self.client.get(reverse('home'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'ให้เขาได้กลับบ้านสักที')
-        self.assertNotContains(response, 'home-strip')
+        self.assertContains(response, 'หาบ้านที่ใช่ ให้เพื่อนสี่ขา')
+        self.assertContains(response, 'home-strip')
+        self.assertContains(response, '🐶')
         self.assertContains(response, reverse('public_dog_list'))
 
-    def test_home_with_three_or_more_dogs_shows_strip(self):
+    def test_home_with_dogs_links_to_each_dog(self):
         dogs = [
             Dog.objects.create(name=f'HomeDog{i}', status=Dog.AVAILABLE)
-            for i in range(3)
+            for i in range(5)
         ]
         response = self.client.get(reverse('home'))
         self.assertEqual(response.status_code, 200)
@@ -235,12 +238,58 @@ class HomePageTests(TestCase):
             self.assertContains(response, reverse('public_dog_detail', args=[dog.pk]))
         self.assertContains(response, reverse('register'))
 
-    def test_home_with_fewer_than_three_dogs_hides_strip(self):
+    def test_home_with_fewer_than_five_dogs_shows_emoji_fallback(self):
         Dog.objects.create(name='HomeDogOne', status=Dog.AVAILABLE)
         Dog.objects.create(name='HomeDogTwo', status=Dog.AVAILABLE)
         response = self.client.get(reverse('home'))
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, 'home-strip')
+        self.assertContains(response, 'home-strip')
+        self.assertContains(response, '🐩')
+
+
+class PublicPageTests(TestCase):
+    def test_anonymous_navbar_has_no_staff_link(self):
+        response = self.client.get(reverse('home'))
+        self.assertNotContains(response, 'สำหรับเจ้าหน้าที่')
+        self.assertContains(response, 'หน้าหลัก')
+        self.assertContains(response, 'ค้นหาน้องหมา')
+        self.assertContains(response, 'เข้าสู่ระบบ')
+        self.assertContains(response, 'สมัครสมาชิก')
+
+    def test_footer_shows_current_year(self):
+        from datetime import date
+
+        response = self.client.get(reverse('home'))
+        self.assertContains(
+            response, f'© {date.today().year} StayMatch Platform'
+        )
+
+    def test_privacy_and_terms_pages(self):
+        privacy = self.client.get(reverse('privacy'))
+        self.assertEqual(privacy.status_code, 200)
+        self.assertContains(privacy, 'PDPA')
+
+        terms = self.client.get(reverse('terms'))
+        self.assertEqual(terms.status_code, 200)
+        self.assertContains(terms, 'Terms of Service')
+
+    def test_success_message_renders_in_modal(self):
+        response = self.client.post(
+            reverse('register'),
+            {
+                'username': 'modaltest',
+                'password1': 'Str0ngPass!234',
+                'password2': 'Str0ngPass!234',
+                'full_name': 'ผู้ทดสอบ โมดัล',
+                'phone': '0812345678',
+                'address': '123',
+                'pdpa_consent': 'on',
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="systemMessageBody"')
+        self.assertContains(response, 'สมัครสมาชิกสำเร็จ')
 
 
 class HomePageNoDogsTests(TestCase):

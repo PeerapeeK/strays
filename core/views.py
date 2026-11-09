@@ -61,15 +61,33 @@ from .services import (
 )
 
 
+DOG_EMOJIS = ('🐶', '🐕', '🐩', '🦮', '🐕‍🦺')
+
+
 def home(request):
     dogs = list(Dog.objects.filter(status=Dog.AVAILABLE)[:5])
     featured_dog = next((dog for dog in dogs if dog.photo), dogs[0] if dogs else None)
+    hero_tiles = []
+    for index, emoji in enumerate(DOG_EMOJIS):
+        hero_tiles.append({
+            'dog': dogs[index] if index < len(dogs) else None,
+            'emoji': emoji,
+            'tone': 'yellow' if index % 2 == 0 else 'pink',
+        })
     context = {
         'dogs': dogs,
         'featured_dog': featured_dog,
-        'show_dog_strip': len(dogs) >= 3,
+        'hero_tiles': hero_tiles,
     }
     return render(request, 'home.html', context)
+
+
+def privacy(request):
+    return render(request, 'pages/privacy.html')
+
+
+def terms(request):
+    return render(request, 'pages/terms.html')
 
 
 @login_required
@@ -312,12 +330,13 @@ def public_dog_list(request):
     size = request.GET.get('size', '')
 
     if q:
-        dogs = dogs.filter(
-            Q(name__icontains=q)
-            | Q(breed__icontains=q)
-            | Q(color__icontains=q)
-            | Q(description__icontains=q)
-        )
+        search = Q(name__icontains=q) | Q(breed__icontains=q) | Q(sex__icontains=q)
+        lowered = q.lower()
+        if lowered in ('ผู้', 'male', 'ตัวผู้'):
+            search |= Q(sex=Dog.MALE)
+        elif lowered in ('เมีย', 'female', 'ตัวเมีย'):
+            search |= Q(sex=Dog.FEMALE)
+        dogs = dogs.filter(search)
     if sex in dict(Dog.SEX_CHOICES):
         dogs = dogs.filter(sex=sex)
     if size in dict(Dog.SIZE_CHOICES):
