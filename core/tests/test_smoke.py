@@ -111,6 +111,8 @@ class SmokeTests(TestCase):
             reverse('user_list'): 200,
             reverse('staff_create'): 200,
             reverse('user_edit', args=[self.admin.pk]): 200,
+            reverse('admin_user_delete', args=[self.users[ADOPTER].pk]): 302,
+            reverse('admin_user_anonymize', args=[self.users[ADOPTER].pk]): 200,
             reverse('public_dog_list'): 200,
             reverse('public_dog_detail', args=[self.dog.pk]): 200,
             reverse('dog_list'): 200,

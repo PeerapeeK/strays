@@ -3,28 +3,77 @@
 {% block title %}แก้ไขผู้ใช้ {{ edit_user.username }}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h1 class="h4 mb-3">แก้ไขผู้ใช้: {{ edit_user.username }}</h1>
-                {% if form.non_field_errors %}
-                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-                {% endif %}
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    {% for field in form %}
-                        <div class="mb-3">
-                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                            {{ field }}
-                            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                        </div>
-                    {% endfor %}
-                    <button type="submit" class="btn btn-primary">บันทึก</button>
-                    <a class="btn btn-link" href="{% url 'user_list' %}">ยกเลิก</a>
-                </form>
-            </div>
+<div class="form-flow">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1">แก้ไขผู้ใช้: {{ edit_user.username }}</h1>
+            <p class="text-muted mb-0">ปรับปรุงข้อมูลบัญชีและข้อมูลส่วนตัวของผู้ใช้</p>
         </div>
+        <a class="btn btn-link px-0" href="{% url 'user_list' %}">กลับไปยังรายการ</a>
     </div>
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" novalidate data-loading-form>
+        {% csrf_token %}
+
+        <section class="form-section" aria-labelledby="user-step-1">
+            <h2 class="form-section-title" id="user-step-1">
+                <span class="form-section-num">01</span> ข้อมูลบัญชี
+            </h2>
+            {% include 'includes/form_field.html' with field=form.username %}
+            {% include 'includes/form_field.html' with field=form.first_name %}
+            {% include 'includes/form_field.html' with field=form.last_name %}
+            {% include 'includes/form_field.html' with field=form.email %}
+        </section>
+
+        <section class="form-section" aria-labelledby="user-step-2">
+            <h2 class="form-section-title" id="user-step-2">
+                <span class="form-section-num">02</span> ข้อมูลส่วนตัว
+            </h2>
+            {% include 'includes/form_field.html' with field=form.full_name %}
+            {% include 'includes/form_field.html' with field=form.phone %}
+            {% include 'includes/form_field.html' with field=form.address %}
+        </section>
+
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <button type="submit" class="btn btn-primary" data-loading-text="กำลังบันทึก...">บันทึก</button>
+            <a class="btn btn-link" href="{% url 'user_list' %}">ยกเลิก</a>
+        </div>
+    </form>
+
+    <section class="form-section mt-4" aria-labelledby="user-account-actions">
+        <h2 class="form-section-title" id="user-account-actions">
+            <span class="form-section-num">03</span> การจัดการบัญชี
+        </h2>
+
+        {% if is_self %}
+            <p class="text-muted mb-0">ไม่สามารถลบหรือทำให้บัญชีของตนเองไม่ระบุตัวตนได้</p>
+        {% elif is_last_admin %}
+            <p class="text-muted mb-0">ไม่สามารถลบหรือทำให้ผู้ดูแลระบบคนสุดท้ายไม่ระบุตัวตนได้</p>
+        {% elif has_links %}
+            <p class="text-muted">
+                บัญชีนี้มีประวัติการใช้งาน จึงไม่สามารถลบได้ เพราะต้องเก็บประวัติการรับอุปการะไว้
+                ท่านสามารถทำให้ข้อมูลส่วนตัวไม่ระบุตัวตนได้ โดยประวัติการใช้งานจะยังคงอยู่
+            </p>
+            <ul class="text-muted small">
+                {% for record in linked_records %}
+                    <li>{{ record.label }} {{ record.count }} รายการ</li>
+                {% endfor %}
+            </ul>
+            {% if can_anonymize %}
+                <a class="btn btn-outline-danger" href="{% url 'admin_user_anonymize' edit_user.pk %}">ทำให้ไม่ระบุตัวตน</a>
+            {% endif %}
+        {% else %}
+            <p class="text-muted">
+                บัญชีนี้ยังไม่มีประวัติการใช้งาน สามารถลบได้อย่างถาวร
+            </p>
+            {% if can_delete %}
+                <a class="btn btn-outline-danger" href="{% url 'admin_user_delete' edit_user.pk %}">ลบผู้ใช้</a>
+            {% endif %}
+        {% endif %}
+    </section>
 </div>
 {% endblock %}

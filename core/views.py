@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Q
+from django.db.models.deletion import ProtectedError
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -33,6 +34,7 @@ from .forms import (
 from .models import (
     AdoptionContract,
     Assessment,
+    AuditEvent,
     Dog,
     FollowUp,
     FollowUpEvaluation,
@@ -46,7 +48,16 @@ from .models import (
     notify,
 )
 from .permissions import ADOPTER, ADMIN, STAFF, role_required, user_role
-from .services import activate_contract, create_follow_ups, notify_staff
+from .services import (
+    activate_contract,
+    anonymize_user,
+    create_follow_ups,
+    delete_user,
+    is_last_active_admin,
+    notify_staff,
+    record_audit_event,
+    user_linked_records,
+)
 
 
 def home(request):
@@ -106,7 +117,22 @@ def admin_dashboard(request):
 @role_required(ADMIN)
 def user_list(request):
     users = User.objects.select_related('profile').order_by('username')
-    rows = [{'user': user, 'role': user_role(user)} for user in users]
+    rows = []
+    for target in users:
+        linked_records = user_linked_records(target)
+        is_self = target.pk == request.user.pk
+        last_admin = is_last_active_admin(target)
+        can_manage = not is_self and not last_admin
+        rows.append({
+            'user': target,
+            'role': user_role(target),
+            'linked_records': linked_records,
+            'has_links': bool(linked_records),
+            'is_self': is_self,
+            'is_last_admin': last_admin,
+            'can_delete': can_manage and not linked_records,
+            'can_anonymize': can_manage and bool(linked_records),
+        })
     return render(request, 'users/user_list.html', {'rows': rows})
 
 
@@ -123,18 +149,115 @@ def staff_create(request):
     return render(request, 'users/staff_form.html', {'form': form})
 
 
+def _user_action_block_reason(target, request):
+    if target.pk == request.user.pk:
+        return 'ไม่สามารถลบหรือทำให้บัญชีของตนเองไม่ระบุตัวตนได้'
+    if is_last_active_admin(target):
+        return 'ไม่สามารถลบหรือทำให้ผู้ดูแลระบบคนสุดท้ายไม่ระบุตัวตนได้'
+    return None
+
+
 @role_required(ADMIN)
 def user_edit(request, pk):
-    user = get_object_or_404(User, pk=pk)
+    target = get_object_or_404(User, pk=pk)
+    old_username = target.username
     if request.method == 'POST':
-        form = UserEditForm(request.POST, instance=user)
+        form = UserEditForm(request.POST, instance=target)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'บันทึกข้อมูลผู้ใช้สำเร็จ')
+            with transaction.atomic():
+                form.save()
+                if target.username != old_username:
+                    record_audit_event(
+                        request.user,
+                        AuditEvent.USERNAME_CHANGE,
+                        target.pk,
+                        target.username,
+                    )
+            if target.username != old_username:
+                messages.success(
+                    request,
+                    f'บันทึกข้อมูลผู้ใช้สำเร็จ ชื่อผู้ใช้ใหม่คือ {target.username}',
+                )
+            else:
+                messages.success(request, 'บันทึกข้อมูลผู้ใช้สำเร็จ')
             return redirect('user_list')
     else:
-        form = UserEditForm(instance=user)
-    return render(request, 'users/user_form.html', {'form': form, 'edit_user': user})
+        form = UserEditForm(instance=target)
+
+    linked_records = user_linked_records(target)
+    is_self = target.pk == request.user.pk
+    last_admin = is_last_active_admin(target)
+    can_manage = not is_self and not last_admin
+    context = {
+        'form': form,
+        'edit_user': target,
+        'linked_records': linked_records,
+        'has_links': bool(linked_records),
+        'is_self': is_self,
+        'is_last_admin': last_admin,
+        'can_delete': can_manage and not linked_records,
+        'can_anonymize': can_manage and bool(linked_records),
+    }
+    return render(request, 'users/user_form.html', context)
+
+
+@role_required(ADMIN)
+def admin_user_delete(request, pk):
+    target = get_object_or_404(User, pk=pk)
+    linked_records = user_linked_records(target)
+    reason = _user_action_block_reason(target, request)
+    if not reason and linked_records:
+        reason = (
+            'บัญชีนี้มีประวัติการใช้งาน จึงไม่สามารถลบได้ '
+            'กรุณาใช้การทำให้ไม่ระบุตัวตนแทน'
+        )
+    if reason:
+        messages.error(request, reason)
+        return redirect('user_edit', pk=target.pk)
+
+    if request.method == 'POST':
+        try:
+            target_username = delete_user(target, request.user)
+        except ProtectedError:
+            messages.error(
+                request,
+                'ไม่สามารถลบบัญชีนี้ได้ เนื่องจากมีข้อมูลที่เชื่อมโยงอยู่',
+            )
+            return redirect('user_edit', pk=pk)
+        messages.success(request, f'ลบผู้ใช้ {target_username} สำเร็จ')
+        return redirect('user_list')
+
+    context = {
+        'target': target,
+        'action': 'delete',
+        'linked_records': linked_records,
+    }
+    return render(request, 'users/user_confirm_action.html', context)
+
+
+@role_required(ADMIN)
+def admin_user_anonymize(request, pk):
+    target = get_object_or_404(User, pk=pk)
+    linked_records = user_linked_records(target)
+    reason = _user_action_block_reason(target, request)
+    if reason:
+        messages.error(request, reason)
+        return redirect('user_edit', pk=target.pk)
+
+    if request.method == 'POST':
+        original_username = anonymize_user(target, request.user)
+        messages.success(
+            request,
+            f'ทำให้บัญชี {original_username} ไม่ระบุตัวตนสำเร็จ',
+        )
+        return redirect('user_list')
+
+    context = {
+        'target': target,
+        'action': 'anonymize',
+        'linked_records': linked_records,
+    }
+    return render(request, 'users/user_confirm_action.html', context)
 
 
 @role_required(ADMIN)
@@ -1261,6 +1384,12 @@ def audit_log(request):
     paginator = Paginator(entries, 50)
     page_obj = paginator.get_page(request.GET.get('page'))
 
+    account_events = AuditEvent.objects.select_related('actor')
+    if start:
+        account_events = account_events.filter(created_at__date__gte=start)
+    if end:
+        account_events = account_events.filter(created_at__date__lte=end)
+
     context = {
         'page_obj': page_obj,
         'entries': page_obj.object_list,
@@ -1270,5 +1399,6 @@ def audit_log(request):
         'model_name': model_name,
         'action_choices': HISTORY_ACTIONS,
         'model_choices': sorted(model_choices, key=lambda item: item[1]),
+        'account_events': account_events[:200],
     }
     return render(request, 'audit/log.html', context)

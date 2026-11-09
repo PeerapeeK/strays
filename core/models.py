@@ -68,6 +68,39 @@ class ShelterSettings(models.Model):
         return obj
 
 
+class AuditEvent(models.Model):
+    USERNAME_CHANGE = 'username_change'
+    DELETE = 'delete'
+    ANONYMIZE = 'anonymize'
+    ACTION_CHOICES = [
+        (USERNAME_CHANGE, 'เปลี่ยนชื่อผู้ใช้'),
+        (DELETE, 'ลบผู้ใช้'),
+        (ANONYMIZE, 'ทำให้ไม่ระบุตัวตน'),
+    ]
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_events',
+        verbose_name='ผู้ดำเนินการ',
+    )
+    actor_username = models.CharField('ชื่อผู้ดำเนินการ', max_length=150, blank=True)
+    action = models.CharField('การกระทำ', max_length=20, choices=ACTION_CHOICES)
+    target_id = models.PositiveIntegerField('รหัสผู้ใช้เป้าหมาย')
+    target_username = models.CharField('ชื่อผู้ใช้เป้าหมาย', max_length=150)
+    created_at = models.DateTimeField('เวลาที่บันทึก', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'บันทึกการจัดการบัญชี'
+        verbose_name_plural = 'บันทึกการจัดการบัญชี'
+        ordering = ('-created_at', '-pk')
+
+    def __str__(self):
+        return f'{self.get_action_display()} - {self.target_username}'
+
+
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_profile_for_new_user(sender, instance, created, **kwargs):
     if created:
@@ -171,7 +204,7 @@ class InterviewRequest(models.Model):
     code = models.CharField('รหัสการนัดหมาย', max_length=12, unique=True, editable=False)
     adopter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='interview_requests',
         verbose_name='ผู้รับอุปการะ',
     )
@@ -309,7 +342,7 @@ class InterviewResult(models.Model):
     notes = models.TextField('รายละเอียดผลการสัมภาษณ์')
     recorded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='recorded_interview_results',
@@ -362,7 +395,7 @@ class Notification(models.Model):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='notifications',
         verbose_name='ผู้รับ',
     )
@@ -544,7 +577,7 @@ class HomeVisit(models.Model):
     notes = models.TextField('หมายเหตุ', blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='created_home_visits',
@@ -579,7 +612,7 @@ class FollowUpEvaluation(models.Model):
     )
     evaluator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='follow_up_evaluations',

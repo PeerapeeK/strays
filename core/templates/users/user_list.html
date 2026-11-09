@@ -36,7 +36,13 @@
                     </td>
                     <td class="text-end">
                         <a class="btn btn-sm btn-outline-primary" href="{% url 'user_edit' row.user.pk %}">แก้ไข</a>
-                        {% if row.user.pk != user.pk %}
+                        {% if row.can_delete %}
+                            <a class="btn btn-sm btn-outline-danger" href="{% url 'admin_user_delete' row.user.pk %}">ลบ</a>
+                        {% endif %}
+                        {% if row.can_anonymize %}
+                            <a class="btn btn-sm btn-outline-danger" href="{% url 'admin_user_anonymize' row.user.pk %}">ทำให้ไม่ระบุตัวตน</a>
+                        {% endif %}
+                        {% if not row.is_self %}
                             <form method="post" action="{% url 'user_toggle_active' row.user.pk %}" class="d-inline">
                                 {% csrf_token %}
                                 {% if row.user.is_active %}
@@ -45,6 +51,9 @@
                                     <button type="submit" class="btn btn-sm btn-outline-success">เปิดใช้งาน</button>
                                 {% endif %}
                             </form>
+                        {% endif %}
+                        {% if row.has_links and not row.is_self %}
+                            <div class="small text-muted mt-1">มีประวัติการใช้งาน จึงลบไม่ได้</div>
                         {% endif %}
                     </td>
                 </tr>

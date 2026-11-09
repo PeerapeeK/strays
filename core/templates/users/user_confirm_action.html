@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if action == 'delete' %}ยืนยันการลบผู้ใช้{% else %}ยืนยันการทำให้ไม่ระบุตัวตน{% endif %}{% endblock %}
+
+{% block content %}
+<div class="form-flow">
+    <div class="card border-danger">
+        <div class="card-body">
+            <h1 class="h4 mb-3">
+                {% if action == 'delete' %}
+                    ยืนยันการลบผู้ใช้
+                {% else %}
+                    ยืนยันการทำให้ไม่ระบุตัวตน
+                {% endif %}
+            </h1>
+
+            <p class="mb-2">ชื่อผู้ใช้: <strong>{{ target.username }}</strong></p>
+
+            {% if action == 'delete' %}
+                <p class="text-muted">
+                    การลบบัญชีนี้จะลบข้อมูลบัญชีอย่างถาวรและไม่สามารถย้อนกลับได้
+                </p>
+            {% else %}
+                <p class="text-muted">
+                    ข้อมูลส่วนตัวของผู้ใช้จะถูกลบและบัญชีจะถูกปิดใช้งาน
+                    แต่ประวัติการใช้งานจะยังคงอยู่ทั้งหมด
+                </p>
+                {% if linked_records %}
+                    <ul class="text-muted small">
+                        {% for record in linked_records %}
+                            <li>{{ record.label }} {{ record.count }} รายการ</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endif %}
+
+            <form method="post" class="d-flex flex-wrap gap-2 mt-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger">
+                    {% if action == 'delete' %}
+                        ยืนยันการลบ
+                    {% else %}
+                        ยืนยันการทำให้ไม่ระบุตัวตน
+                    {% endif %}
+                </button>
+                <a class="btn btn-link" href="{% url 'user_edit' target.pk %}">ยกเลิก</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -4,6 +4,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from .models import (
     AdoptionContract,
     Assessment,
+    AuditEvent,
     Dog,
     DogHealthRecord,
     FollowUp,
@@ -19,6 +20,23 @@ from .models import (
     Profile,
     ShelterSettings,
 )
+
+
+@admin.register(AuditEvent)
+class AuditEventAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'action', 'target_username', 'target_id', 'actor_username')
+    list_filter = ('action',)
+    search_fields = ('target_username', 'actor_username')
+    readonly_fields = (
+        'actor', 'actor_username', 'action', 'target_id',
+        'target_username', 'created_at',
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Profile)

@@ -86,4 +86,37 @@
 {% else %}
     <div class="alert alert-info">ไม่พบบันทึกการใช้งานตามเงื่อนไขที่เลือก</div>
 {% endif %}
+
+<h2 class="h5 mt-5 mb-3">ประวัติการจัดการบัญชีผู้ใช้</h2>
+
+{% if account_events %}
+    <div class="table-responsive" style="overflow-x:auto;">
+        <table class="table table-striped align-middle bg-white">
+            <thead>
+                <tr>
+                    <th>วันและเวลา</th>
+                    <th>การกระทำ</th>
+                    <th>ผู้ใช้เป้าหมาย</th>
+                    <th>ผู้ดำเนินการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in account_events %}
+                    <tr>
+                        <td>{{ event.created_at|date:'d/m/Y H:i:s' }}</td>
+                        <td>
+                            <span class="badge {% if event.action == 'delete' %}bg-danger{% elif event.action == 'username_change' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ event.get_action_display }}
+                            </span>
+                        </td>
+                        <td>{{ event.target_username }} <span class="text-muted small">#{{ event.target_id }}</span></td>
+                        <td>{{ event.actor_username|default:'-' }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">ไม่พบประวัติการจัดการบัญชีผู้ใช้ตามเงื่อนไขที่เลือก</div>
+{% endif %}
 {% endblock %}

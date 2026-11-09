@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import Group, User
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.utils import timezone
 
 from .models import (
@@ -132,13 +133,25 @@ class StaffCreateForm(BootstrapFormMixin, UserCreationForm):
 
 
 class UserEditForm(BootstrapFormMixin, forms.ModelForm):
+    username = forms.CharField(
+        label='ชื่อผู้ใช้',
+        max_length=150,
+        validators=[
+            RegexValidator(
+                r'^[A-Za-z0-9@.+\-_]+$',
+                'ชื่อผู้ใช้ใช้ได้เฉพาะตัวอักษรภาษาอังกฤษ ตัวเลข และ @ . + - _ เท่านั้น',
+            )
+        ],
+        error_messages={'required': 'กรุณากรอกชื่อผู้ใช้'},
+        help_text='ใช้ตัวอักษรภาษาอังกฤษ ตัวเลข และ @ . + - _ เท่านั้น',
+    )
     full_name = forms.CharField(label='ชื่อ-นามสกุล', max_length=150, required=False)
     phone = forms.CharField(label='เบอร์โทรศัพท์', max_length=20, required=False)
     address = forms.CharField(label='ที่อยู่', widget=forms.Textarea, required=False)
 
     class Meta:
         model = User
-        fields = ('first_name', 'last_name', 'email')
+        fields = ('username', 'first_name', 'last_name', 'email')
         labels = {
             'first_name': 'ชื่อ',
             'last_name': 'นามสกุล',
@@ -153,6 +166,17 @@ class UserEditForm(BootstrapFormMixin, forms.ModelForm):
                 self.fields['full_name'].initial = profile.full_name
                 self.fields['phone'].initial = profile.phone
                 self.fields['address'].initial = profile.address
+
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        if not username:
+            raise ValidationError('กรุณากรอกชื่อผู้ใช้')
+        duplicates = User.objects.filter(username__iexact=username)
+        if self.instance.pk:
+            duplicates = duplicates.exclude(pk=self.instance.pk)
+        if duplicates.exists():
+            raise ValidationError('ชื่อผู้ใช้นี้ถูกใช้งานแล้ว')
+        return username
 
     def save(self, commit=True):
         user = super().save(commit=commit)

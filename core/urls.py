@@ -23,6 +23,12 @@ urlpatterns = [
     path('users/', views.user_list, name='user_list'),
     path('users/create-staff/', views.staff_create, name='staff_create'),
     path('users/<int:pk>/edit/', views.user_edit, name='user_edit'),
+    path('users/<int:pk>/delete/', views.admin_user_delete, name='admin_user_delete'),
+    path(
+        'users/<int:pk>/anonymize/',
+        views.admin_user_anonymize,
+        name='admin_user_anonymize',
+    ),
     path('users/<int:pk>/toggle-active/', views.user_toggle_active, name='user_toggle_active'),
     path('dogs/', views.public_dog_list, name='public_dog_list'),
     path('dogs/<int:pk>/', views.public_dog_detail, name='public_dog_detail'),

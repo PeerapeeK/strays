@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from core.models import Dog
 from core.permissions import ADOPTER, ADMIN, STAFF
-from core.validators import MAX_IMAGE_SIZE, validate_image
+from core.validators import MAX_SIZE, validate_image
 
 PASSWORD = 'Str0ngPass!234'
 
@@ -100,7 +100,7 @@ class ValidateImageTests(TestCase):
     def test_rejects_files_over_five_megabytes(self):
         upload = SimpleUploadedFile(
             'large.jpg',
-            b'x' * (MAX_IMAGE_SIZE + 1),
+            b'x' * (MAX_SIZE + 1),
             content_type='image/jpeg',
         )
         with self.assertRaises(ValidationError):
