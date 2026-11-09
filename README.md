@@ -6,14 +6,27 @@
 
 ## เทคโนโลยีที่ใช้
 
-- Django 5/6 (โปรเจกต์ `config`, แอปเดียว `core`)
+- Python 3.13
+- Django 6.1 (โปรเจกต์ `config`, แอปเดียว `core`)
 - SQLite
-- Bootstrap 5 (CDN)
+- Bootstrap 5 (CDN) และ `static/css/theme.css`
 - Chart.js (CDN) สำหรับรายงาน
 - `django-simple-history` สำหรับ audit log
 - Argon2 สำหรับ hash รหัสผ่าน
 - Pillow สำหรับตรวจสอบรูปภาพ
-- requests สำหรับส่ง push notification
+- `requests` สำหรับส่ง push notification
+
+## ฟีเจอร์หลัก
+
+- **ผู้รับอุปการะ (Adopter):** สมัครสมาชิก/เข้าสู่ระบบ ค้นหาสุนัข จองคิวสัมภาษณ์
+  ติดตามสถานะนัด ตรวจสอบสัญญา และส่งแบบฟอร์มติดตามผลพร้อมรูปถ่าย
+- **เจ้าหน้าที่ (Staff):** จัดการข้อมูลสุนัข ตรวจสอบและยืนยัน/ปฏิเสธคำขอรับเลี้ยง
+  บันทึกผลสัมภาษณ์ สร้างสัญญา นัดตรวจบ้าน และประเมินผลการติดตามผล
+- **ผู้ดูแลระบบ (Admin):** จัดการบัญชีผู้ใช้ สร้างบัญชีเจ้าหน้าที่ ระงับบัญชี
+  ดูรายงานสถิติ และตรวจสอบบันทึกการใช้งาน
+
+บทบาทถูกกำหนดผ่าน Django Groups (`Adopter`, `Staff`, `Admin`) โดย superuser
+นับเป็น Admin และผู้ที่สมัครผ่านหน้าเว็บจะได้บทบาท Adopter
 
 ## การติดตั้ง
 
@@ -28,8 +41,8 @@ pip install django django-simple-history argon2-cffi pillow requests
 # 3) สร้างฐานข้อมูล
 python manage.py migrate
 
-# 4) สร้างข้อมูลตัวอย่าง (บัญชีทดลอง + สุนัขตัวอย่าง)
-python manage.py seed_demo
+# 4) สร้างบัญชีผู้ดูแลระบบ
+python manage.py createsuperuser
 
 # 5) เริ่มเซิร์ฟเวอร์
 python manage.py runserver
@@ -37,18 +50,29 @@ python manage.py runserver
 
 เปิดเว็บที่ <http://127.0.0.1:8000/>
 
-## บัญชีทดลอง (Demo accounts)
+หมายเหตุ:
 
-สร้างด้วยคำสั่ง `python manage.py seed_demo` — รหัสผ่านทุกบัญชีคือ `demo1234`
+- ไฟล์อัปโหลด (รูปสุนัข รูปที่อยู่อาศัย ฯลฯ) ถูกเก็บใน `media/`
+- รองรับเฉพาะรูป JPG, JPEG และ PNG ขนาดไม่เกิน 5 MB ต่อไฟล์
+- ข้อมูลส่วนบุคคลจะถูกบันทึกหลังผู้ใช้ยินยอม PDPA เท่านั้น (เก็บ `pdpa_consent_at`)
 
-| บทบาท | ชื่อผู้ใช้ | รหัสผ่าน |
-| --- | --- | --- |
-| ผู้ดูแลระบบ (Admin) | `admin` | `demo1234` |
-| เจ้าหน้าที่ (Staff) | `staff1` | `demo1234` |
-| เจ้าหน้าที่ (Staff) | `staff2` | `demo1234` |
-| ผู้รับอุปการะ (Adopter) | `adopter1` | `demo1234` |
-| ผู้รับอุปการะ (Adopter) | `adopter2` | `demo1234` |
-| ผู้รับอุปการะ (Adopter) | `adopter3` | `demo1234` |
+## โครงสร้างโปรเจกต์
+
+```text
+config/                 การตั้งค่าโปรเจกต์ (settings, urls)
+core/
+  models.py             โมเดลธุรกิจทั้งหมด (Dog, InterviewRequest, Contract, FollowUp ฯลฯ)
+  views.py              ฟังก์ชัน view ทั้งระบบ
+  forms.py              Django ModelForm/Form พร้อม BootstrapFormMixin
+  permissions.py        ตัวช่วยตรวจสอบบทบาท (Adopter/Staff/Admin)
+  services.py           ตรรกะธุรกิจ (สัญญา การติดตามผล audit ฯลฯ)
+  push.py               ตัวส่ง push notification พร้อม retry
+  validators.py         ตัวตรวจสอบรูปภาพ
+  templates/            เทมเพลต Bootstrap 5 (ข้อความ UI เป็นภาษาไทย)
+  tests/                ชุดทดสอบทั้งหมด
+static/css/theme.css    ธีมหลักของระบบ
+docs/                   เอกสารความต้องการและ mockup
+```
 
 ## Push notifications
 
@@ -84,8 +108,7 @@ python manage.py queue_reminders --days 3
 - **รายงานการติดตามผล** `/reports/followup-stats/`
 
 ทั้งสองหน้ามีตัวกรองช่วงวันที่ ตารางข้อมูล กราฟ Chart.js และปุ่มส่งออก CSV
-เจ้าหน้าที่ (Staff) และผู้ดูแลระบบ (Admin) เข้าใช้งานได้ โดยผู้ดูแลระบบสามารถ
-ตรวจสอบรายงานได้เช่นกัน
+เจ้าหน้าที่ (Staff) และผู้ดูแลระบบ (Admin) เข้าใช้งานได้
 
 ## Audit log
 
@@ -102,5 +125,5 @@ python manage.py test
 ```
 
 ชุดทดสอบประกอบด้วย smoke test ที่ล็อกอินด้วยทุกบทบาทและเรียกทุก URL
-รวมถึงการทดสอบ push retry (mock HTTP) และการป้องกันการแจ้งเตือนซ้ำของ
-`queue_reminders`
+รวมถึงการทดสอบสิทธิตามบทบาท การทดสอบปุ่มดำเนินการตามสถานะของคำขอรับเลี้ยง
+การทดสอบ push retry (mock HTTP) และการป้องกันการแจ้งเตือนซ้ำของ `queue_reminders`
