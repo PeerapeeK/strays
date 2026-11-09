@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}จัดการนัดสัมภาษณ์{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">จัดการนัดสัมภาษณ์</h1>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-md-4">
+        <label class="form-label" for="filter-q">ค้นหา</label>
+        <input type="text" class="form-control" id="filter-q" name="q" value="{{ q }}"
+               placeholder="รหัส, ชื่อสุนัข, ชื่อผู้รับอุปการะ">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label" for="filter-status">สถานะ</label>
+        <select class="form-select" id="filter-status" name="status">
+            <option value="">ทั้งหมด</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label" for="filter-date">วันที่สัมภาษณ์</label>
+        <input type="date" class="form-control" id="filter-date" name="date" value="{{ date }}">
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">กรองข้อมูล</button>
+    </div>
+</form>
+
+{% if interviews %}
+    <div class="table-responsive">
+        <table class="table table-striped align-middle bg-white">
+            <thead>
+                <tr>
+                    <th>รหัส</th>
+                    <th>สุนัข</th>
+                    <th>ผู้รับอุปการะ</th>
+                    <th>วันและเวลา</th>
+                    <th>สถานะ</th>
+                    <th class="text-end">การจัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for interview in interviews %}
+                    <tr>
+                        <td>{{ interview.code }}</td>
+                        <td>{{ interview.dog.name }}</td>
+                        <td>{{ interview.full_name }}<br><span class="text-muted small">{{ interview.adopter.username }}</span></td>
+                        <td>{{ interview.scheduled_at|date:'d/m/Y H:i' }}</td>
+                        <td><span class="badge bg-secondary">{{ interview.get_status_display }}</span></td>
+                        <td class="text-end">
+                            {% if interview.status == 'pending' %}
+                                <form method="post" action="{% url 'staff_interview_confirm' interview.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success">ยืนยัน</button>
+                                </form>
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        data-bs-toggle="modal" data-bs-target="#rejectModal{{ interview.pk }}">ปฏิเสธ</button>
+                            {% elif interview.status == 'confirmed' %}
+                                <a class="btn btn-sm btn-primary" href="{% url 'staff_interview_result' interview.pk %}">บันทึกผล</a>
+                            {% else %}
+                                <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% for interview in interviews %}
+        {% if interview.status == 'pending' %}
+            <div class="modal fade" id="rejectModal{{ interview.pk }}" tabindex="-1"
+                 aria-labelledby="rejectModalLabel{{ interview.pk }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="post" action="{% url 'staff_interview_reject' interview.pk %}">
+                            {% csrf_token %}
+                            <div class="modal-header">
+                                <h2 class="modal-title fs-5" id="rejectModalLabel{{ interview.pk }}">
+                                    ปฏิเสธนัดหมาย {{ interview.code }}
+                                </h2>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label class="form-label" for="reject-reason-{{ interview.pk }}">{{ reject_form.reason.label }}</label>
+                                {{ reject_form.reason }}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                                <button type="submit" class="btn btn-danger">ยืนยันการปฏิเสธ</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info">ไม่พบรายการนัดสัมภาษณ์</div>
+{% endif %}
+{% endblock %}

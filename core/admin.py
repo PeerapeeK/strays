@@ -1,7 +1,18 @@
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
-from .models import Dog, DogHealthRecord, Profile, ShelterSettings
+from .models import (
+    Assessment,
+    Dog,
+    DogHealthRecord,
+    HousingPhoto,
+    InterviewPhoto,
+    InterviewRequest,
+    InterviewResult,
+    Notification,
+    Profile,
+    ShelterSettings,
+)
 
 
 @admin.register(Profile)
@@ -33,3 +44,40 @@ class DogHealthRecordAdmin(SimpleHistoryAdmin):
     list_display = ('dog', 'record_date', 'title', 'veterinarian')
     list_filter = ('record_date',)
     search_fields = ('dog__name', 'title', 'description', 'veterinarian')
+
+
+@admin.register(InterviewRequest)
+class InterviewRequestAdmin(SimpleHistoryAdmin):
+    list_display = ('code', 'dog', 'adopter', 'scheduled_at', 'status')
+    list_filter = ('status', 'scheduled_at')
+    search_fields = ('code', 'dog__name', 'full_name', 'adopter__username')
+    readonly_fields = ('code',)
+
+
+@admin.register(Assessment)
+class AssessmentAdmin(SimpleHistoryAdmin):
+    list_display = ('interview_request', 'housing_type', 'household_members')
+    list_filter = ('housing_type', 'has_other_pets', 'agree_home_visit')
+
+
+@admin.register(HousingPhoto)
+class HousingPhotoAdmin(SimpleHistoryAdmin):
+    list_display = ('interview_request', 'uploaded_at')
+
+
+@admin.register(InterviewResult)
+class InterviewResultAdmin(SimpleHistoryAdmin):
+    list_display = ('interview_request', 'outcome', 'recorded_by', 'recorded_at')
+    list_filter = ('outcome',)
+
+
+@admin.register(InterviewPhoto)
+class InterviewPhotoAdmin(SimpleHistoryAdmin):
+    list_display = ('result', 'uploaded_at')
+
+
+@admin.register(Notification)
+class NotificationAdmin(SimpleHistoryAdmin):
+    list_display = ('title', 'user', 'status', 'attempts', 'next_attempt_at', 'created_at')
+    list_filter = ('status',)
+    search_fields = ('title', 'message', 'user__username', 'dedupe_key')

@@ -4,13 +4,33 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
+    <div class="col-lg-8">
         <div class="card shadow-sm">
             <div class="card-body">
                 <h1 class="h4 mb-3">จองคิวสัมภาษณ์</h1>
-                <p class="mb-1">สุนัข: <strong>{{ dog.name }}</strong></p>
-                <p class="text-muted">ระบบจองคิวสัมภาษณ์จะเปิดใช้งานเร็ว ๆ นี้</p>
-                <a class="btn btn-outline-primary" href="{% url 'public_dog_detail' dog.pk %}">กลับไปยังข้อมูลสุนัข</a>
+                <p class="mb-3">สุนัข: <strong>{{ dog.name }}</strong></p>
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ field.id_for_label }}">
+                                {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                            {% for error in field.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">ยืนยันการจอง</button>
+                        <a class="btn btn-outline-secondary" href="{% url 'public_dog_detail' dog.pk %}">ยกเลิก</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

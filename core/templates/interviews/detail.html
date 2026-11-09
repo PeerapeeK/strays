@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}รายละเอียดการนัดสัมภาษณ์{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">รายละเอียดการนัดสัมภาษณ์</h1>
+    <a class="btn btn-link" href="{% url 'interview_list' %}">กลับไปยังรายการ</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <p class="text-muted mb-1">รหัสการนัดหมาย</p>
+                <p class="fs-4 fw-bold mb-0">{{ interview.code }}</p>
+            </div>
+            <span class="badge bg-secondary fs-6">{{ interview.get_status_display }}</span>
+        </div>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">สุนัข</dt>
+            <dd class="col-sm-9">{{ interview.dog.name }}</dd>
+            <dt class="col-sm-3">วันและเวลาสัมภาษณ์</dt>
+            <dd class="col-sm-9">{{ interview.scheduled_at|date:'d/m/Y H:i' }}</dd>
+            <dt class="col-sm-3">ผู้รับอุปการะ</dt>
+            <dd class="col-sm-9">{{ interview.full_name }}</dd>
+            <dt class="col-sm-3">เบอร์โทรศัพท์</dt>
+            <dd class="col-sm-9">{{ interview.phone }}</dd>
+            <dt class="col-sm-3">ที่อยู่</dt>
+            <dd class="col-sm-9">{{ interview.address|linebreaksbr }}</dd>
+            <dt class="col-sm-3">ยืนยันการเข้าร่วม</dt>
+            <dd class="col-sm-9">
+                {% if interview.attendance_confirmed_at %}
+                    ยืนยันแล้วเมื่อ {{ interview.attendance_confirmed_at|date:'d/m/Y H:i' }}
+                {% else %}
+                    ยังไม่ได้ยืนยัน
+                {% endif %}
+            </dd>
+            {% if interview.reject_reason %}
+                <dt class="col-sm-3">เหตุผลการปฏิเสธ</dt>
+                <dd class="col-sm-9">{{ interview.reject_reason|linebreaksbr }}</dd>
+            {% endif %}
+        </dl>
+    </div>
+</div>
+
+{% if interview.assessment %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">แบบประเมินเบื้องต้น</h2>
+            <dl class="row mb-0">
+                <dt class="col-sm-4">ประเภทที่อยู่อาศัย</dt>
+                <dd class="col-sm-8">{{ interview.assessment.get_housing_type_display }}</dd>
+                <dt class="col-sm-4">มีสัตว์เลี้ยงอื่น</dt>
+                <dd class="col-sm-8">{% if interview.assessment.has_other_pets %}มี{% else %}ไม่มี{% endif %}</dd>
+                <dt class="col-sm-4">จำนวนสมาชิกในบ้าน</dt>
+                <dd class="col-sm-8">{{ interview.assessment.household_members }} คน</dd>
+                <dt class="col-sm-4">ประสบการณ์เลี้ยงสุนัข</dt>
+                <dd class="col-sm-8">{{ interview.assessment.experience|linebreaksbr }}</dd>
+                <dt class="col-sm-4">เหตุผลที่ต้องการรับอุปการะ</dt>
+                <dd class="col-sm-8">{{ interview.assessment.motivation|linebreaksbr }}</dd>
+                <dt class="col-sm-4">ยินยอมให้เข้าตรวจบ้าน</dt>
+                <dd class="col-sm-8">{% if interview.assessment.agree_home_visit %}ยินยอม{% else %}ไม่ยินยอม{% endif %}</dd>
+            </dl>
+        </div>
+    </div>
+{% endif %}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h2 class="h5 mb-3">รูปถ่ายที่อยู่อาศัย</h2>
+        <div class="row g-3">
+            {% for photo in interview.housing_photos.all %}
+                <div class="col-6 col-md-3">
+                    <img src="{{ photo.image.url }}" class="img-fluid rounded shadow-sm" alt="รูปถ่ายที่อยู่อาศัย">
+                </div>
+            {% empty %}
+                <p class="text-muted mb-0">ไม่มีรูปถ่าย</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% if interview.result %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">ผลการสัมภาษณ์</h2>
+            <p class="mb-1">ผล: <strong>{{ interview.result.get_outcome_display }}</strong></p>
+            <p class="mb-3">{{ interview.result.notes|linebreaksbr }}</p>
+            <div class="row g-3">
+                {% for photo in interview.result.photos.all %}
+                    <div class="col-6 col-md-3">
+                        <img src="{{ photo.image.url }}" class="img-fluid rounded shadow-sm" alt="รูปภาพการสัมภาษณ์">
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<div class="d-flex flex-wrap gap-2">
+    {% if interview.can_confirm_attendance %}
+        <form method="post" action="{% url 'interview_confirm_attendance' interview.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">ยืนยันการเข้าร่วมสัมภาษณ์</button>
+        </form>
+    {% endif %}
+    {% if interview.can_cancel %}
+        <form method="post" action="{% url 'interview_cancel' interview.pk %}" onsubmit="return confirm('ต้องการยกเลิกนัดหมายนี้ใช่หรือไม่');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger">ยกเลิกนัดหมาย</button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

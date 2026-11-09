@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}การนัดสัมภาษณ์ของฉัน{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">การนัดสัมภาษณ์ของฉัน</h1>
+    <a class="btn btn-outline-primary" href="{% url 'public_dog_list' %}">ค้นหาสุนัข</a>
+</div>
+
+{% if interviews %}
+    <div class="table-responsive">
+        <table class="table table-striped align-middle bg-white">
+            <thead>
+                <tr>
+                    <th>รหัส</th>
+                    <th>สุนัข</th>
+                    <th>วันและเวลา</th>
+                    <th>สถานะ</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for interview in interviews %}
+                    <tr>
+                        <td>{{ interview.code }}</td>
+                        <td>{{ interview.dog.name }}</td>
+                        <td>{{ interview.scheduled_at|date:'d/m/Y H:i' }}</td>
+                        <td><span class="badge bg-secondary">{{ interview.get_status_display }}</span></td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'interview_detail' interview.pk %}">ดูรายละเอียด</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">คุณยังไม่มีรายการนัดสัมภาษณ์</div>
+{% endif %}
+{% endblock %}

@@ -1,8 +1,11 @@
+from datetime import timedelta
+
 from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
-from core.models import Dog
+from core.models import Dog, InterviewRequest
 from core.permissions import ADOPTER, ADMIN, STAFF
 
 PASSWORD = 'Str0ngPass!234'
@@ -23,6 +26,15 @@ class SmokeTests(TestCase):
 
         cls.admin = cls.users[ADMIN]
         cls.dog = Dog.objects.create(name='SmokeDog', status=Dog.AVAILABLE)
+        cls.interview = InterviewRequest.objects.create(
+            adopter=cls.users[ADOPTER],
+            dog=cls.dog,
+            scheduled_at=timezone.now() + timedelta(days=3),
+            full_name='ผู้ทดสอบ ระบบ',
+            phone='0800000000',
+            address='ที่อยู่ทดสอบ',
+            status=InterviewRequest.CONFIRMED,
+        )
 
     def test_public_urls(self):
         urls = (
@@ -52,7 +64,8 @@ class SmokeTests(TestCase):
             reverse('dog_create'): 200,
             reverse('dog_detail', args=[self.dog.pk]): 200,
             reverse('dog_edit', args=[self.dog.pk]): 200,
-            reverse('interview_book', args=[self.dog.pk]): 200,
+            reverse('staff_interview_list'): 200,
+            reverse('staff_interview_result', args=[self.interview.pk]): 200,
         }
         for url, status in expected.items():
             with self.subTest(url=url):
@@ -70,7 +83,8 @@ class SmokeTests(TestCase):
             reverse('dog_create'): 200,
             reverse('dog_detail', args=[self.dog.pk]): 200,
             reverse('dog_edit', args=[self.dog.pk]): 200,
-            reverse('interview_book', args=[self.dog.pk]): 200,
+            reverse('staff_interview_list'): 200,
+            reverse('staff_interview_result', args=[self.interview.pk]): 200,
         }
         for url, status in expected.items():
             with self.subTest(url=url):
@@ -85,6 +99,8 @@ class SmokeTests(TestCase):
             reverse('public_dog_list'): 200,
             reverse('public_dog_detail', args=[self.dog.pk]): 200,
             reverse('interview_book', args=[self.dog.pk]): 200,
+            reverse('interview_list'): 200,
+            reverse('interview_detail', args=[self.interview.pk]): 200,
         }
         for url, status in expected.items():
             with self.subTest(url=url):
