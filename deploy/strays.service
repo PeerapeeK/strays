@@ -1,0 +1,29 @@
+[Unit]
+Description=StayMatch Django application (gunicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=strays
+Group=www-data
+WorkingDirectory=/srv/strays
+EnvironmentFile=/etc/strays.env
+RuntimeDirectory=strays
+RuntimeDirectoryMode=0750
+ExecStart=/srv/strays/.venv/bin/gunicorn config.wsgi:application \
+    --name strays \
+    --workers 3 \
+    --bind unix:/run/strays/gunicorn.sock \
+    --umask 0007 \
+    --access-logfile - \
+    --error-logfile -
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/srv/strays
+
+[Install]
+WantedBy=multi-user.target
