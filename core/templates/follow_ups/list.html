@@ -29,7 +29,13 @@
                         <td>{{ follow_up.contract.interview_request.dog.name }}</td>
                         <td>{{ follow_up.day_offset }} วัน</td>
                         <td>{{ follow_up.due_date|date:'d/m/Y' }}</td>
-                        <td><span class="status-pill {{ follow_up.status|status_class }}">{{ follow_up.get_status_display }}</span></td>
+                        <td>
+                            {% if follow_up.is_overdue %}
+                                <span class="status-pill status-rejected">เกินกำหนด</span>
+                            {% else %}
+                                <span class="status-pill {{ follow_up.status|status_class }}">{{ follow_up.get_status_display }}</span>
+                            {% endif %}
+                        </td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-outline-primary" href="{% url 'followup_detail' follow_up.pk %}">ดูรายละเอียด</a>
                         </td>

@@ -1,8 +1,12 @@
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import path, reverse_lazy
 
 from . import views
-from .forms import LoginForm
+from .forms import (
+    LoginForm,
+    PasswordResetConfirmForm,
+    PasswordResetRequestForm,
+)
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -24,7 +28,56 @@ urlpatterns = [
         name='login',
     ),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path(
+        'password-reset/',
+        auth_views.PasswordResetView.as_view(
+            template_name='auth/password_reset_form.html',
+            email_template_name='auth/password_reset_email.html',
+            subject_template_name='auth/password_reset_subject.txt',
+            form_class=PasswordResetRequestForm,
+            success_url=reverse_lazy('password_reset_done'),
+        ),
+        name='password_reset',
+    ),
+    path(
+        'password-reset/done/',
+        auth_views.PasswordResetDoneView.as_view(
+            template_name='auth/password_reset_done.html',
+        ),
+        name='password_reset_done',
+    ),
+    path(
+        'reset/<uidb64>/<token>/',
+        auth_views.PasswordResetConfirmView.as_view(
+            template_name='auth/password_reset_confirm.html',
+            form_class=PasswordResetConfirmForm,
+            success_url=reverse_lazy('password_reset_complete'),
+        ),
+        name='password_reset_confirm',
+    ),
+    path(
+        'reset/done/',
+        auth_views.PasswordResetCompleteView.as_view(
+            template_name='auth/password_reset_complete.html',
+        ),
+        name='password_reset_complete',
+    ),
     path('register/', views.register, name='register'),
+    path(
+        'notifications/',
+        views.notification_list,
+        name='notification_list',
+    ),
+    path(
+        'notifications/read-all/',
+        views.notifications_mark_all_read,
+        name='notifications_mark_all_read',
+    ),
+    path(
+        'notifications/<int:pk>/read/',
+        views.notification_mark_read,
+        name='notification_mark_read',
+    ),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('dashboard/adopter/', views.adopter_dashboard, name='adopter_dashboard'),
     path('dashboard/staff/', views.staff_dashboard, name='staff_dashboard'),
@@ -90,6 +143,11 @@ urlpatterns = [
         views.homevisit_request_reschedule,
         name='homevisit_request_reschedule',
     ),
+    path(
+        'home-visits/<int:pk>/confirm/',
+        views.homevisit_confirm,
+        name='homevisit_confirm',
+    ),
     path('staff/contracts/', views.staff_contract_list, name='staff_contract_list'),
     path(
         'staff/contracts/<int:pk>/',
@@ -110,6 +168,11 @@ urlpatterns = [
         'staff/contracts/<int:contract_pk>/home-visits/create/',
         views.homevisit_create,
         name='homevisit_create',
+    ),
+    path(
+        'staff/home-visits/',
+        views.staff_home_visit_list,
+        name='staff_home_visit_list',
     ),
     path(
         'staff/home-visits/<int:pk>/edit/',

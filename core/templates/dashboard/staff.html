@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}ระบบจัดการศูนย์พักพิง{% endblock %}
 
@@ -7,5 +8,107 @@
     <h1 class="staff-heading">ระบบจัดการศูนย์พักพิง</h1>
     <p class="staff-subtitle">ยินดีต้อนรับ, {{ user.profile.full_name|default:user.username }}</p>
     {% include 'includes/staff_tabs.html' %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h5 mb-0">คำขอที่รอการยืนยัน</h2>
+                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'staff_interview_list' %}?status=pending">ทั้งหมด</a>
+                    </div>
+                    {% for interview in pending_interviews %}
+                        <div class="border rounded p-2 mb-2">
+                            <p class="mb-1"><strong>{{ interview.full_name|default:interview.adopter.username }}</strong> · {{ interview.dog.name }}</p>
+                            <p class="mb-0 small text-muted">นัด {{ interview.scheduled_at|date:'d/m/Y H:i' }} · รหัส {{ interview.code }}</p>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted mb-0">ไม่มีคำขอที่รอการยืนยัน</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h5 mb-0">นัดสัมภาษณ์ที่กำลังจะมาถึง</h2>
+                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'staff_interview_list' %}?upcoming=1">ทั้งหมด</a>
+                    </div>
+                    {% for interview in upcoming_interviews %}
+                        <div class="border rounded p-2 mb-2">
+                            <p class="mb-1"><strong>{{ interview.dog.name }}</strong> · {{ interview.scheduled_at|date:'d/m/Y H:i' }}</p>
+                            <p class="mb-0 small text-muted">{{ interview.full_name }} · <span class="status-pill {{ interview.status|status_class }}">{{ interview.get_status_display }}</span></p>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted mb-0">ยังไม่มีนัดสัมภาษณ์ที่กำลังจะมาถึง</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h5 mb-0">นัดตรวจบ้านที่กำลังจะมาถึง</h2>
+                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'staff_home_visit_list' %}">ทั้งหมด</a>
+                    </div>
+                    {% for home_visit in upcoming_home_visits %}
+                        <div class="border rounded p-2 mb-2">
+                            <p class="mb-1"><strong>{{ home_visit.scheduled_at|date:'d/m/Y H:i' }}</strong> · {{ home_visit.contract.interview_request.dog.name }}</p>
+                            <p class="mb-0 small text-muted">
+                                {{ home_visit.contract.interview_request.full_name }} ·
+                                <span class="status-pill {{ home_visit.status|status_class }}">{{ home_visit.get_status_display }}</span>
+                                {% if home_visit.adopter_confirmed_at %} · ผู้รับอุปการะยืนยันแล้ว{% else %} · รอยืนยัน{% endif %}
+                            </p>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted mb-0">ยังไม่มีนัดตรวจบ้านที่กำลังจะมาถึง</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h5 mb-0">การติดตามผลที่รอตรวจ</h2>
+                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'staff_followup_list' %}?status=submitted">ทั้งหมด</a>
+                    </div>
+                    {% for follow_up in follow_ups_to_review %}
+                        <div class="border rounded p-2 mb-2">
+                            <p class="mb-1">ครั้งที่ {{ follow_up.day_offset }} วัน · {{ follow_up.contract.interview_request.dog.name }}</p>
+                            <p class="mb-0 small text-muted">ส่งเมื่อ {{ follow_up.submitted_at|date:'d/m/Y H:i' }} · {{ follow_up.contract.interview_request.full_name }}</p>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted mb-0">ไม่มีการติดตามผลที่รอตรวจ</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 mb-0">การติดตามผลเกินกำหนด</h2>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'staff_followup_list' %}?status=pending">ทั้งหมด</a>
+            </div>
+            {% for follow_up in overdue_follow_ups %}
+                <div class="border rounded p-2 mb-2">
+                    <p class="mb-1">ครั้งที่ {{ follow_up.day_offset }} วัน · {{ follow_up.contract.interview_request.dog.name }}</p>
+                    <p class="mb-0 small text-muted">
+                        ครบกำหนด {{ follow_up.due_date|date:'d/m/Y' }} · {{ follow_up.contract.interview_request.full_name }} ·
+                        <span class="badge bg-danger">เกินกำหนด</span>
+                    </p>
+                </div>
+            {% empty %}
+                <p class="text-muted mb-0">ไม่มีการติดตามผลเกินกำหนด</p>
+            {% endfor %}
+        </div>
+    </div>
 </div>
 {% endblock %}

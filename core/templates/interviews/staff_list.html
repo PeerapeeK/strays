@@ -31,10 +31,28 @@
             </select>
         </div>
         <div class="staff-filter-date">
+            <label class="visually-hidden" for="filter-dog">สุนัข</label>
+            <input type="text" class="form-control" id="filter-dog" name="dog"
+                   value="{{ dog }}" placeholder="ชื่อสุนัข">
+        </div>
+        <div class="staff-filter-date">
             <label class="visually-hidden" for="filter-date">วันที่สัมภาษณ์</label>
             <input type="date" class="form-control" id="filter-date" name="date" value="{{ date }}">
         </div>
+        <div class="staff-filter-date">
+            <label class="visually-hidden" for="filter-date-from">ตั้งแต่วันที่</label>
+            <input type="date" class="form-control" id="filter-date-from" name="date_from" value="{{ date_from }}">
+        </div>
+        <div class="staff-filter-date">
+            <label class="visually-hidden" for="filter-date-to">ถึงวันที่</label>
+            <input type="date" class="form-control" id="filter-date-to" name="date_to" value="{{ date_to }}">
+        </div>
+        <div class="form-check align-self-center">
+            <input class="form-check-input" type="checkbox" id="filter-upcoming" name="upcoming" value="1" {% if upcoming == '1' %}checked{% endif %}>
+            <label class="form-check-label" for="filter-upcoming">เฉพาะที่กำลังจะมาถึง</label>
+        </div>
         <button type="submit" class="btn btn-primary btn-sm">กรองข้อมูล</button>
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'staff_interview_list' %}">ล้าง</a>
     </form>
 
     <div class="staff-list">
@@ -46,6 +64,8 @@
                         <h3 class="staff-row-name">{{ interview.full_name|default:interview.adopter.username }}</h3>
                         <p class="staff-row-sub">ต้องการรับเลี้ยง: <strong>{{ interview.dog.name }}</strong></p>
                         <p class="staff-row-foot">
+                            รหัส: {{ interview.code }} ·
+                            นัด: {{ interview.scheduled_at|date:'d/m/Y H:i' }} ·
                             ยื่นเมื่อ: {{ interview.created_at|timesince }} ที่แล้ว ·
                             สถานะ: {{ interview.get_status_display }}
                         </p>

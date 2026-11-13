@@ -1,8 +1,16 @@
 {% with current=request.resolver_match.url_name %}
 <nav class="staff-tabbar" aria-label="เมนูจัดการศูนย์พักพิง">
     <a class="staff-tab {% if current == 'dog_list' or current == 'dog_create' or current == 'dog_detail' or current == 'dog_edit' %}is-active{% endif %}"
-       href="{% url 'dog_list' %}">จัดการข้อมูลสุนัข</a>
-    <a class="staff-tab {% if current == 'staff_interview_list' or current == 'staff_interview_result' or current == 'staff_contract_create' %}is-active{% endif %}"
-       href="{% url 'staff_interview_list' %}">คำขอรับเลี้ยง</a>
+       href="{% url 'dog_list' %}">สุนัข</a>
+    <a class="staff-tab {% if current == 'staff_interview_list' or current == 'staff_interview_result' %}is-active{% endif %}"
+       href="{% url 'staff_interview_list' %}">นัดสัมภาษณ์</a>
+    <a class="staff-tab {% if current == 'staff_contract_list' or current == 'staff_contract_detail' or current == 'staff_contract_edit' or current == 'staff_contract_create' %}is-active{% endif %}"
+       href="{% url 'staff_contract_list' %}">สัญญา</a>
+    <a class="staff-tab {% if current == 'staff_home_visit_list' or current == 'homevisit_create' or current == 'homevisit_edit' %}is-active{% endif %}"
+       href="{% url 'staff_home_visit_list' %}">ตรวจเยี่ยมบ้าน</a>
+    <a class="staff-tab {% if current == 'staff_followup_list' or current == 'staff_followup_detail' %}is-active{% endif %}"
+       href="{% url 'staff_followup_list' %}">ติดตามผล</a>
+    <a class="staff-tab {% if current == 'adoption_stats' or current == 'followup_stats' %}is-active{% endif %}"
+       href="{% url 'adoption_stats' %}">รายงาน</a>
 </nav>
 {% endwith %}

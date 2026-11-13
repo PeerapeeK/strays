@@ -101,6 +101,9 @@ class SmokeTests(TestCase):
             reverse('privacy'),
             reverse('terms'),
             reverse('healthz'),
+            reverse('password_reset'),
+            reverse('password_reset_done'),
+            reverse('password_reset_complete'),
         )
         for url in urls:
             with self.subTest(url=url):
@@ -113,7 +116,7 @@ class SmokeTests(TestCase):
             reverse('my_profile'): 200,
             reverse('dashboard'): 302,
             reverse('admin_dashboard'): 200,
-            reverse('staff_dashboard'): 200,
+            reverse('staff_dashboard'): 403,
             reverse('user_list'): 200,
             reverse('staff_create'): 200,
             reverse('user_edit', args=[self.admin.pk]): 200,
@@ -125,22 +128,24 @@ class SmokeTests(TestCase):
             reverse('dog_create'): 200,
             reverse('dog_detail', args=[self.dog.pk]): 200,
             reverse('dog_edit', args=[self.dog.pk]): 200,
-            reverse('staff_interview_list'): 200,
-            reverse('staff_interview_result', args=[self.interview.pk]): 200,
-            reverse('staff_contract_list'): 200,
-            reverse('staff_contract_create', args=[self.approved_interview.pk]): 200,
-            reverse('staff_contract_detail', args=[self.contract.pk]): 200,
-            reverse('staff_contract_edit', args=[self.contract.pk]): 200,
-            reverse('homevisit_create', args=[self.contract.pk]): 200,
-            reverse('homevisit_edit', args=[self.home_visit.pk]): 200,
-            reverse('staff_followup_list'): 200,
-            reverse('staff_followup_detail', args=[self.follow_up.pk]): 200,
-            reverse('staff_followup_evaluate', args=[self.follow_up.pk]): 200,
+            reverse('staff_interview_list'): 403,
+            reverse('staff_interview_result', args=[self.interview.pk]): 403,
+            reverse('staff_contract_list'): 403,
+            reverse('staff_contract_create', args=[self.approved_interview.pk]): 403,
+            reverse('staff_contract_detail', args=[self.contract.pk]): 403,
+            reverse('staff_contract_edit', args=[self.contract.pk]): 403,
+            reverse('homevisit_create', args=[self.contract.pk]): 403,
+            reverse('homevisit_edit', args=[self.home_visit.pk]): 403,
+            reverse('staff_home_visit_list'): 403,
+            reverse('staff_followup_list'): 403,
+            reverse('staff_followup_detail', args=[self.follow_up.pk]): 403,
+            reverse('staff_followup_evaluate', args=[self.follow_up.pk]): 403,
             reverse('adoption_stats'): 200,
             reverse('followup_stats'): 200,
             reverse('adoption_stats_csv'): 200,
             reverse('followup_stats_csv'): 200,
             reverse('audit_log'): 200,
+            reverse('notification_list'): 200,
         }
         for url, status in expected.items():
             with self.subTest(url=url):
@@ -167,6 +172,8 @@ class SmokeTests(TestCase):
             reverse('staff_contract_edit', args=[self.contract.pk]): 200,
             reverse('homevisit_create', args=[self.contract.pk]): 200,
             reverse('homevisit_edit', args=[self.home_visit.pk]): 200,
+            reverse('staff_home_visit_list'): 200,
+            reverse('notification_list'): 200,
             reverse('staff_followup_list'): 200,
             reverse('staff_followup_detail', args=[self.follow_up.pk]): 200,
             reverse('staff_followup_evaluate', args=[self.follow_up.pk]): 200,
@@ -195,6 +202,7 @@ class SmokeTests(TestCase):
             reverse('contract_detail', args=[self.contract.pk]): 200,
             reverse('followup_list'): 200,
             reverse('followup_detail', args=[self.follow_up.pk]): 200,
+            reverse('notification_list'): 200,
         }
         for url, status in expected.items():
             with self.subTest(url=url):
@@ -243,6 +251,10 @@ class StaffWorkspaceTests(TestCase):
         self.assertContains(response, 'staff-tabbar')
         self.assertContains(response, reverse('dog_list'))
         self.assertContains(response, reverse('staff_interview_list'))
+        self.assertContains(response, reverse('staff_home_visit_list'))
+        self.assertContains(response, 'ตรวจเยี่ยมบ้าน')
+        self.assertContains(response, 'ติดตามผล')
+        self.assertContains(response, 'รายงาน')
 
     def test_dog_list_uses_staff_components_and_active_tab(self):
         response = self.client.get(reverse('dog_list'))

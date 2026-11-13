@@ -30,19 +30,15 @@
             {% include 'includes/form_required_note.html' %}
             {% include 'includes/form_field.html' with field=form.username %}
             {% include 'includes/form_field.html' with field=form.email %}
-        </section>
-
-        <section class="form-section" aria-labelledby="user-step-2">
-            <h2 class="form-section-title" id="user-step-2">
-                <span class="form-section-num">02</span> ข้อมูลส่วนตัว
-            </h2>
-            {% include 'includes/form_field.html' with field=form.full_name %}
-            {% include 'includes/form_field.html' with field=form.phone %}
-            {% include 'includes/form_field.html' with field=form.address %}
             {% if form.remove_photo %}
                 {% include 'includes/form_field.html' with field=form.remove_photo %}
-                <p class="form-text">ผู้ดูแลระบบสามารถลบรูปโปรไฟล์ของผู้ใช้อื่นได้ แต่ไม่สามารถเปลี่ยนรูปแทนได้</p>
+                <p class="form-text">ผู้ดูแลระบบสามารถลบรูปโปรไฟล์ที่ไม่เหมาะสมได้ แต่ไม่สามารถเปลี่ยนรูปแทนเจ้าของบัญชีได้</p>
             {% endif %}
+            <p class="text-muted small mb-0">
+                ข้อมูลส่วนตัว เช่น ชื่อ-นามสกุล ที่อยู่ และเบอร์โทรศัพท์
+                เป็นข้อมูลที่เจ้าของบัญชีจัดการเองผ่านหน้าโปรไฟล์
+                ผู้ดูแลระบบไม่สามารถแก้ไขแทนได้
+            </p>
         </section>
 
         <div class="d-flex flex-wrap gap-2 mt-4">
@@ -53,7 +49,7 @@
 
     <section class="form-section mt-4" aria-labelledby="user-account-actions">
         <h2 class="form-section-title" id="user-account-actions">
-            <span class="form-section-num">03</span> การจัดการบัญชี
+            <span class="form-section-num">02</span> การจัดการบัญชี
         </h2>
 
         {% if is_self %}

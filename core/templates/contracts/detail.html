@@ -58,6 +58,14 @@
                     <div>
                         <p class="mb-1">วันและเวลา: <strong>{{ home_visit.scheduled_at|date:'d/m/Y H:i' }}</strong></p>
                         <p class="mb-1">สถานะ: <span class="status-pill {{ home_visit.status|status_class }}">{{ home_visit.get_status_display }}</span></p>
+                        <p class="mb-1">
+                            การยืนยัน:
+                            {% if home_visit.adopter_confirmed_at %}
+                                <span class="status-pill status-available">ยืนยันแล้วเมื่อ {{ home_visit.adopter_confirmed_at|date:'d/m/Y H:i' }}</span>
+                            {% else %}
+                                <span class="status-pill status-pending">รอการยืนยันจากคุณ</span>
+                            {% endif %}
+                        </p>
                         {% if home_visit.notes %}<p class="mb-1 text-muted">{{ home_visit.notes|linebreaksbr }}</p>{% endif %}
                         {% if home_visit.status == 'reschedule_requested' %}
                             <p class="mb-1">ขอเลื่อนไปเป็น: {{ home_visit.requested_scheduled_at|date:'d/m/Y H:i' }}</p>
@@ -65,6 +73,12 @@
                         {% endif %}
                     </div>
                 </div>
+                {% if home_visit.can_confirm %}
+                    <form method="post" action="{% url 'homevisit_confirm' home_visit.pk %}" class="mb-2">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-sm">ยืนยันรับนัดตรวจบ้าน</button>
+                    </form>
+                {% endif %}
                 {% if home_visit.status != 'reschedule_requested' %}
                     <hr>
                     <form method="post" action="{% url 'homevisit_request_reschedule' home_visit.pk %}" class="row g-2">
@@ -106,7 +120,13 @@
                         <tr>
                             <td>{{ follow_up.day_offset }} วัน</td>
                             <td>{{ follow_up.due_date|date:'d/m/Y' }}</td>
-                            <td><span class="status-pill {{ follow_up.status|status_class }}">{{ follow_up.get_status_display }}</span></td>
+                            <td>
+                                {% if follow_up.is_overdue %}
+                                    <span class="status-pill status-rejected">เกินกำหนด</span>
+                                {% else %}
+                                    <span class="status-pill {{ follow_up.status|status_class }}">{{ follow_up.get_status_display }}</span>
+                                {% endif %}
+                            </td>
                             <td class="text-end">
                                 <a class="btn btn-sm btn-outline-primary" href="{% url 'followup_detail' follow_up.pk %}">ดูรายละเอียด</a>
                             </td>

@@ -1,13 +1,132 @@
 {% extends 'base.html' %}
+{% load status_tags %}
 
 {% block title %}แดชบอร์ดผู้รับอุปการะ{% endblock %}
 
 {% block content %}
 <h1 class="h3 mb-3">แดชบอร์ดผู้รับอุปการะ</h1>
-<div class="card shadow-sm">
+<div class="card shadow-sm mb-4">
     <div class="card-body">
         <p class="mb-2">ยินดีต้อนรับ {{ user.profile.full_name|default:user.username }}</p>
-        <p class="text-muted mb-0">ที่นี่คุณจะสามารถค้นหาสุนัขเพื่อรับอุปการะและติดตามสถานะคำขอของคุณได้</p>
+        <p class="text-muted mb-0">ติดตามสถานะการนัดสัมภาษณ์ สัญญา การตรวจบ้าน และการติดตามผลได้จากที่นี่</p>
+    </div>
+</div>
+
+{% if overdue_follow_up_count %}
+    <div class="alert alert-danger">
+        มีการติดตามผลที่เกินกำหนด {{ overdue_follow_up_count }} รายการ
+        <a class="alert-link" href="{% url 'followup_list' %}">ไปที่หน้าติดตามผล</a>
+    </div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h5 mb-0">นัดสัมภาษณ์ที่กำลังจะมาถึง</h2>
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'interview_list' %}">ทั้งหมด</a>
+                </div>
+                {% for interview in upcoming_interviews %}
+                    <div class="border rounded p-2 mb-2">
+                        <p class="mb-1"><strong>{{ interview.dog.name }}</strong> · {{ interview.scheduled_at|date:'d/m/Y H:i' }}</p>
+                        <p class="mb-0 small">
+                            รหัส {{ interview.code }} ·
+                            <span class="status-pill {{ interview.status|status_class }}">{{ interview.get_status_display }}</span>
+                        </p>
+                    </div>
+                {% empty %}
+                    <p class="text-muted mb-0">ยังไม่มีนัดสัมภาษณ์ที่กำลังจะมาถึง</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h5 mb-0">นัดตรวจบ้านที่กำลังจะมาถึง</h2>
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'contract_list' %}">สัญญา</a>
+                </div>
+                {% for home_visit in upcoming_home_visits %}
+                    <div class="border rounded p-2 mb-2">
+                        <p class="mb-1"><strong>{{ home_visit.scheduled_at|date:'d/m/Y H:i' }}</strong></p>
+                        <p class="mb-0 small">
+                            สัญญา {{ home_visit.contract.contract_no }} ·
+                            <span class="status-pill {{ home_visit.status|status_class }}">{{ home_visit.get_status_display }}</span>
+                            {% if home_visit.adopter_confirmed_at %} · ยืนยันแล้ว{% else %} · รอยืนยัน{% endif %}
+                        </p>
+                    </div>
+                {% empty %}
+                    <p class="text-muted mb-0">ยังไม่มีนัดตรวจบ้านที่กำลังจะมาถึง</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h5 mb-3">สัญญารับอุปการะ</h2>
+                {% for contract in active_contracts %}
+                    <div class="border rounded p-2 mb-2">
+                        <p class="mb-1">สัญญา {{ contract.contract_no }} · {{ contract.interview_request.dog.name }}</p>
+                        <p class="mb-0 small">
+                            เริ่ม {{ contract.start_date|date:'d/m/Y' }} ·
+                            {% if contract.acknowledged_at %}ยอมรับแล้ว{% else %}รอการยอมรับ{% endif %}
+                        </p>
+                    </div>
+                {% empty %}
+                    <p class="text-muted mb-0">ยังไม่มีสัญญาที่มีผลบังคับใช้</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h5 mb-0">การติดตามผลที่ต้องดำเนินการ</h2>
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'followup_list' %}">ทั้งหมด</a>
+                </div>
+                {% for follow_up in pending_follow_ups %}
+                    <div class="border rounded p-2 mb-2">
+                        <p class="mb-1">
+                            ครั้งที่ {{ follow_up.day_offset }} วัน · ครบกำหนด {{ follow_up.due_date|date:'d/m/Y' }}
+                        </p>
+                        <p class="mb-0 small">
+                            {% if follow_up.is_overdue %}
+                                <span class="badge bg-danger">เกินกำหนด</span>
+                            {% else %}
+                                <span class="status-pill {{ follow_up.status|status_class }}">{{ follow_up.get_status_display }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                {% empty %}
+                    <p class="text-muted mb-0">ไม่มีการติดตามผลที่ค้างอยู่</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0">การแจ้งเตือนล่าสุด</h2>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'notification_list' %}">ทั้งหมด</a>
+        </div>
+        {% for notification in recent_notifications %}
+            <div class="border rounded p-2 mb-2">
+                <p class="mb-1"><strong>{{ notification.title }}</strong>{% if notification.is_unread %} <span class="badge bg-primary">ใหม่</span>{% endif %}</p>
+                <p class="mb-1">{{ notification.message|truncatechars:120 }}</p>
+                <p class="text-muted small mb-0">{{ notification.created_at|date:'d/m/Y H:i' }}</p>
+            </div>
+        {% empty %}
+            <p class="text-muted mb-0">ยังไม่มีการแจ้งเตือน</p>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

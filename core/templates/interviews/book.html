@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}สมัครรับเลี้ยง: {{ dog.name }} - StrayMatch{% endblock %}
 
@@ -13,77 +14,210 @@
             <a class="btn btn-link px-0" href="{% url 'public_dog_detail' dog.pk %}">กลับไปยังหน้าสุนัข</a>
         </div>
 
-    <ol class="flow-steps" aria-label="ขั้นตอนการจองคิว">
-        <li>ข้อมูลส่วนตัว</li>
-        <li>ที่อยู่อาศัย</li>
-        <li>การประเมิน</li>
-        <li>นัดหมายและยืนยัน</li>
-    </ol>
+        <ol class="flow-steps" aria-label="ขั้นตอนการจองคิว">
+            <li>ข้อมูลผู้สมัคร</li>
+            <li>ที่อยู่อาศัย</li>
+            <li>การประเมิน</li>
+            <li>นัดหมายและยืนยัน</li>
+        </ol>
 
-    {% if form.non_field_errors %}
-        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-    {% endif %}
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
 
-    <form method="post" enctype="multipart/form-data" novalidate data-loading-form>
-        {% csrf_token %}
+        <form method="post" enctype="multipart/form-data" novalidate data-loading-form>
+            {% csrf_token %}
 
-        <section class="form-section" aria-labelledby="booking-step-1">
-            <h2 class="form-section-title" id="booking-step-1">
-                <span class="form-section-num">01</span> ข้อมูลส่วนตัว
-            </h2>
-            {% include 'includes/form_required_note.html' %}
-            {% include 'includes/form_field.html' with field=form.full_name %}
-            {% include 'includes/form_field.html' with field=form.phone %}
-            {% include 'includes/form_field.html' with field=form.address %}
-        </section>
-
-        <section class="form-section" aria-labelledby="booking-step-2">
-            <h2 class="form-section-title" id="booking-step-2">
-                <span class="form-section-num">02</span> ข้อมูลที่อยู่อาศัย
-            </h2>
-            {% include 'includes/form_field.html' with field=form.housing_type %}
-            {% include 'includes/form_field.html' with field=form.household_members %}
-            {% include 'includes/form_field.html' with field=form.has_other_pets %}
-        </section>
-
-        <section class="form-section" aria-labelledby="booking-step-3">
-            <h2 class="form-section-title" id="booking-step-3">
-                <span class="form-section-num">03</span> การประเมินเบื้องต้น
-            </h2>
-            {% include 'includes/form_field.html' with field=form.experience %}
-            {% include 'includes/form_field.html' with field=form.motivation %}
-            {% include 'includes/form_field.html' with field=form.agree_home_visit %}
-        </section>
-
-        <section class="form-section" aria-labelledby="booking-step-4">
-            <h2 class="form-section-title" id="booking-step-4">
-                <span class="form-section-num">04</span> นัดหมายและยืนยัน
-            </h2>
-            {% include 'includes/form_field.html' with field=form.scheduled_at %}
-
-            {% include 'includes/form_field.html' with field=form.housing_photos %}
-            <div id="housing-photo-error" class="text-danger small d-none" role="alert"></div>
-            <div id="housing-photo-preview" class="photo-preview" aria-live="polite"></div>
-
-            {% if form.pdpa_consent %}
-                <div class="pdpa-box">
-                    {% include 'includes/form_field.html' with field=form.pdpa_consent %}
-                    <div class="form-text mt-2">
-                        {% if form.pdpa_consent.field.disabled %}
-                            คุณได้ให้ความยินยอมตาม PDPA ไว้แล้วระหว่างการสมัครสมาชิก
-                        {% endif %}
-                        ข้อมูลส่วนบุคคลและภาพที่อยู่อาศัยจะถูกจัดเก็บเพื่อการคัดกรองผู้รับเลี้ยงเท่านั้น
-                        และจะไม่ถูกเปิดเผยต่อบุคคลภายนอก
-                    </div>
+            <section class="form-section" aria-labelledby="booking-step-1">
+                <h2 class="form-section-title" id="booking-step-1">
+                    <span class="form-section-num">01</span> ข้อมูลผู้สมัคร
+                </h2>
+                {% include 'includes/form_required_note.html' %}
+                <div class="row g-3">
+                    <div class="col-md-6">{% include 'includes/form_field.html' with field=form.full_name %}</div>
+                    <div class="col-md-6">{% include 'includes/form_field.html' with field=form.phone %}</div>
                 </div>
-            {% endif %}
-        </section>
+            </section>
 
-        <div class="d-flex flex-wrap gap-2 mt-4">
-            <button type="submit" class="btn btn-primary" data-loading-text="กำลังส่งข้อมูล...">ยืนยันการจอง</button>
-            <a class="btn btn-outline-secondary" href="{% url 'public_dog_detail' dog.pk %}">ยกเลิก</a>
-        </div>
-    </form>
+            <section class="form-section" aria-labelledby="booking-step-2">
+                <h2 class="form-section-title" id="booking-step-2">
+                    <span class="form-section-num">02</span> ข้อมูลติดต่อและที่อยู่อาศัย
+                </h2>
+                {% include 'includes/form_field.html' with field=form.address_detail %}
+                <div class="row g-3">
+                    <div class="col-md-4">{% include 'includes/form_field.html' with field=form.province %}</div>
+                    <div class="col-md-4">{% include 'includes/form_field.html' with field=form.district %}</div>
+                    <div class="col-md-4">{% include 'includes/form_field.html' with field=form.subdistrict %}</div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">{% include 'includes/form_field.html' with field=form.postal_code %}</div>
+                </div>
+            </section>
+
+            <section class="form-section" aria-labelledby="booking-step-3">
+                <h2 class="form-section-title" id="booking-step-3">
+                    <span class="form-section-num">03</span> ข้อมูลที่พักอาศัย
+                </h2>
+                {% include 'includes/form_field.html' with field=form.housing_type %}
+                {% include 'includes/form_field.html' with field=form.household_members %}
+                {% include 'includes/form_field.html' with field=form.has_other_pets %}
+            </section>
+
+            <section class="form-section" aria-labelledby="booking-step-4">
+                <h2 class="form-section-title" id="booking-step-4">
+                    <span class="form-section-num">04</span> แบบประเมินความพร้อม
+                </h2>
+                {% include 'includes/form_field.html' with field=form.experience %}
+                {% include 'includes/form_field.html' with field=form.motivation %}
+                {% include 'includes/form_field.html' with field=form.agree_home_visit %}
+            </section>
+
+            <section class="form-section" aria-labelledby="booking-step-5">
+                <h2 class="form-section-title" id="booking-step-5">
+                    <span class="form-section-num">05</span> รูปภาพที่อยู่อาศัย
+                </h2>
+                {% include 'includes/form_field.html' with field=form.housing_photos %}
+                <div id="housing-photo-error" class="text-danger small d-none" role="alert"></div>
+                <div id="housing-photo-preview" class="photo-preview" aria-live="polite"></div>
+            </section>
+
+            <section class="form-section" aria-labelledby="booking-step-6">
+                <h2 class="form-section-title" id="booking-step-6">
+                    <span class="form-section-num">06</span> วันและเวลาสัมภาษณ์
+                </h2>
+                {% include 'includes/form_field.html' with field=form.scheduled_at %}
+                <p class="form-text">
+                    เลือกได้ล่วงหน้าถึง {{ booking_horizon_days }} วัน ·
+                    ช่วงเวลานัดหมายละ {{ slot_minutes }} นาที ภายในเวลาทำการของศูนย์
+                </p>
+            </section>
+
+            <section class="form-section" aria-labelledby="booking-step-7">
+                <h2 class="form-section-title" id="booking-step-7">
+                    <span class="form-section-num">07</span> การยืนยันและ PDPA
+                </h2>
+                {% if form.pdpa_consent %}
+                    <div class="pdpa-box">
+                        {% include 'includes/form_field.html' with field=form.pdpa_consent %}
+                        <div class="form-text mt-2">
+                            {% if form.pdpa_consent.field.disabled %}
+                                คุณได้ให้ความยินยอมตาม PDPA ไว้แล้วระหว่างการสมัครสมาชิก
+                            {% endif %}
+                            ข้อมูลส่วนบุคคลและภาพที่อยู่อาศัยจะถูกจัดเก็บเพื่อการคัดกรองผู้รับเลี้ยงเท่านั้น
+                            และจะไม่ถูกเปิดเผยต่อบุคคลภายนอก
+                        </div>
+                    </div>
+                {% endif %}
+            </section>
+
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <button type="submit" class="btn btn-primary" data-loading-text="กำลังส่งข้อมูล...">ยืนยันการจอง</button>
+                <a class="btn btn-outline-secondary" href="{% url 'public_dog_detail' dog.pk %}">ยกเลิก</a>
+            </div>
+        </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    'use strict';
+
+    var provinceSelect = document.getElementById('id_province');
+    var districtSelect = document.getElementById('id_district');
+    var subdistrictSelect = document.getElementById('id_subdistrict');
+    var postalInput = document.getElementById('id_postal_code');
+    if (!provinceSelect || !districtSelect || !subdistrictSelect) {
+        return;
+    }
+
+    var addressData = null;
+
+    function option(value, label) {
+        var element = document.createElement('option');
+        element.value = value;
+        element.textContent = label;
+        return element;
+    }
+
+    function resetSelect(select, placeholder) {
+        select.innerHTML = '';
+        select.appendChild(option('', placeholder));
+    }
+
+    function fillSelect(select, values, placeholder, selected) {
+        resetSelect(select, placeholder);
+        values.forEach(function (item) {
+            select.appendChild(option(item.name, item.name));
+        });
+        if (selected && values.some(function (item) { return item.name === selected; })) {
+            select.value = selected;
+        }
+    }
+
+    function findProvince(name) {
+        if (!addressData) {
+            return null;
+        }
+        return addressData.provinces.find(function (province) {
+            return province.name === name;
+        }) || null;
+    }
+
+    function findDistrict(province, name) {
+        if (!province) {
+            return null;
+        }
+        return province.districts.find(function (district) {
+            return district.name === name;
+        }) || null;
+    }
+
+    function fillDistricts(keepValue) {
+        var province = findProvince(provinceSelect.value);
+        var selected = keepValue ? districtSelect.value : '';
+        fillSelect(districtSelect, province ? province.districts : [], 'เลือกอำเภอ/เขต', selected);
+        if (!keepValue) {
+            resetSelect(subdistrictSelect, 'เลือกตำบล/แขวง');
+        }
+    }
+
+    function fillSubdistricts(keepValue) {
+        var province = findProvince(provinceSelect.value);
+        var district = findDistrict(province, districtSelect.value);
+        var selected = keepValue ? subdistrictSelect.value : '';
+        fillSelect(subdistrictSelect, district ? district.subdistricts : [], 'เลือกตำบล/แขวง', selected);
+    }
+
+    function fillPostalCode() {
+        var province = findProvince(provinceSelect.value);
+        var district = findDistrict(province, districtSelect.value);
+        if (!district) {
+            return;
+        }
+        var subdistrict = district.subdistricts.find(function (item) {
+            return item.name === subdistrictSelect.value;
+        });
+        if (subdistrict && subdistrict.postal_code) {
+            postalInput.value = subdistrict.postal_code;
+        }
+    }
+
+    provinceSelect.addEventListener('change', function () { fillDistricts(false); });
+    districtSelect.addEventListener('change', function () { fillSubdistricts(false); });
+    subdistrictSelect.addEventListener('change', fillPostalCode);
+
+    fetch('{% static "data/thai_addresses.json" %}')
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            addressData = data;
+            fillDistricts(true);
+            fillSubdistricts(true);
+        })
+        .catch(function () {
+            // Server-side validation still protects the submitted values.
+        });
+})();
+</script>
 {% endblock %}

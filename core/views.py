@@ -50,10 +50,16 @@ from .models import (
     InterviewPhoto,
     InterviewRequest,
     InterviewResult,
+    Notification,
     Profile,
     notify,
 )
 from .permissions import ADOPTER, ADMIN, STAFF, role_required, user_role
+from .scheduling import (
+    booking_horizon_days,
+    has_booking_conflict,
+    slot_duration,
+)
 from .services import (
     activate_contract,
     anonymize_user,
@@ -128,6 +134,10 @@ def protected_file(request, kind, pk):
 
     role = user_role(request.user)
     if role not in (ADOPTER, STAFF, ADMIN):
+        raise PermissionDenied
+    # Admins administer accounts; adoption evidence belongs to the workflow
+    # handled by Staff. Admin keeps access to profile photos only.
+    if role == ADMIN and kind != 'profile':
         raise PermissionDenied
     if role == ADOPTER and config['owner_id'](media) != request.user.pk:
         raise PermissionDenied
@@ -235,17 +245,159 @@ def dashboard(request):
 
 @role_required(ADOPTER)
 def adopter_dashboard(request):
-    return render(request, 'dashboard/adopter.html')
+    now = timezone.now()
+    today = timezone.localdate()
+
+    interviews = InterviewRequest.objects.filter(adopter=request.user)
+    upcoming_interviews = (
+        interviews.filter(
+            status__in=InterviewRequest.ACTIVE_STATUSES,
+            scheduled_at__gte=now,
+        )
+        .select_related('dog')
+        .order_by('scheduled_at')[:5]
+    )
+    contracts = AdoptionContract.objects.filter(
+        interview_request__adopter=request.user
+    ).select_related('interview_request__dog')
+    active_contracts = contracts.filter(status=AdoptionContract.ACTIVE)
+
+    follow_ups = FollowUp.objects.filter(
+        contract__interview_request__adopter=request.user
+    ).select_related('contract__interview_request__dog')
+    pending_follow_ups = follow_ups.exclude(
+        status=FollowUp.SUBMITTED
+    ).order_by('due_date')[:5]
+    overdue_follow_up_count = follow_ups.filter(
+        status__in=(FollowUp.PENDING, FollowUp.OVERDUE),
+        due_date__lt=today,
+    ).count()
+
+    home_visits = HomeVisit.objects.filter(
+        contract__interview_request__adopter=request.user
+    ).select_related('contract__interview_request__dog')
+    upcoming_home_visits = home_visits.filter(
+        status__in=(HomeVisit.SCHEDULED, HomeVisit.APPROVED),
+        scheduled_at__gte=now,
+    ).order_by('scheduled_at')[:5]
+
+    recent_notifications = Notification.objects.filter(
+        user=request.user
+    ).order_by('-created_at')[:5]
+
+    context = {
+        'upcoming_interviews': upcoming_interviews,
+        'active_contracts': active_contracts,
+        'pending_follow_ups': pending_follow_ups,
+        'overdue_follow_up_count': overdue_follow_up_count,
+        'upcoming_home_visits': upcoming_home_visits,
+        'recent_notifications': recent_notifications,
+    }
+    return render(request, 'dashboard/adopter.html', context)
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 def staff_dashboard(request):
-    return render(request, 'dashboard/staff.html')
+    now = timezone.now()
+    today = timezone.localdate()
+
+    pending_interviews = (
+        InterviewRequest.objects.filter(status=InterviewRequest.PENDING)
+        .select_related('dog', 'adopter')
+        .order_by('scheduled_at', 'created_at')[:10]
+    )
+    upcoming_interviews = (
+        InterviewRequest.objects.filter(
+            status__in=InterviewRequest.ACTIVE_STATUSES,
+            scheduled_at__gte=now,
+        )
+        .select_related('dog', 'adopter')
+        .order_by('scheduled_at')[:10]
+    )
+    upcoming_home_visits = (
+        HomeVisit.objects.filter(
+            status__in=(HomeVisit.SCHEDULED, HomeVisit.APPROVED),
+            scheduled_at__gte=now,
+        )
+        .select_related(
+            'contract__interview_request__dog',
+            'contract__interview_request__adopter',
+        )
+        .order_by('scheduled_at')[:10]
+    )
+    follow_ups_to_review = (
+        FollowUp.objects.filter(status=FollowUp.SUBMITTED)
+        .filter(evaluation__isnull=True)
+        .select_related(
+            'contract__interview_request__dog',
+            'contract__interview_request__adopter',
+        )
+        .order_by('submitted_at')[:10]
+    )
+    overdue_follow_ups = (
+        FollowUp.objects.filter(
+            status=FollowUp.PENDING, due_date__lt=today
+        )
+        .select_related(
+            'contract__interview_request__dog',
+            'contract__interview_request__adopter',
+        )
+        .order_by('due_date')[:10]
+    )
+
+    context = {
+        'pending_interviews': pending_interviews,
+        'upcoming_interviews': upcoming_interviews,
+        'upcoming_home_visits': upcoming_home_visits,
+        'follow_ups_to_review': follow_ups_to_review,
+        'overdue_follow_ups': overdue_follow_ups,
+    }
+    return render(request, 'dashboard/staff.html', context)
 
 
 @role_required(ADMIN)
 def admin_dashboard(request):
     return render(request, 'dashboard/admin.html')
+
+
+@login_required
+def notification_list(request):
+    notifications = Notification.objects.filter(
+        user=request.user
+    ).select_related('user')
+    paginator = Paginator(notifications, 30)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    unread_count = notifications.filter(read_at__isnull=True).count()
+    return render(
+        request,
+        'notifications/list.html',
+        {
+            'page_obj': page_obj,
+            'notifications': page_obj.object_list,
+            'unread_count': unread_count,
+        },
+    )
+
+
+@login_required
+@require_POST
+def notification_mark_read(request, pk):
+    notification = get_object_or_404(
+        Notification, pk=pk, user=request.user
+    )
+    if notification.read_at is None:
+        notification.read_at = timezone.now()
+        notification.save(update_fields=['read_at', 'updated_at'])
+    return redirect('notification_list')
+
+
+@login_required
+@require_POST
+def notifications_mark_all_read(request):
+    Notification.objects.filter(
+        user=request.user, read_at__isnull=True
+    ).update(read_at=timezone.now())
+    return redirect('notification_list')
 
 
 @role_required(ADMIN)
@@ -478,23 +630,26 @@ def interview_book(request, dog_id):
             interview = None
             with transaction.atomic():
                 scheduled_at = form.cleaned_data['scheduled_at']
-                slot_taken = InterviewRequest.objects.select_for_update().filter(
-                    scheduled_at=scheduled_at,
-                    status__in=InterviewRequest.ACTIVE_STATUSES,
-                ).exists()
+                slot_taken = has_booking_conflict(scheduled_at)
                 if slot_taken:
                     form.add_error(
                         'scheduled_at',
                         'ช่วงเวลานี้มีผู้จองแล้ว กรุณาเลือกเวลาอื่น',
                     )
                 else:
+                    full_address = form.get_full_address()
                     interview = InterviewRequest.objects.create(
                         adopter=request.user,
                         dog=dog,
                         scheduled_at=scheduled_at,
                         full_name=form.cleaned_data['full_name'],
                         phone=form.cleaned_data['phone'],
-                        address=form.cleaned_data['address'],
+                        address=full_address,
+                        address_detail=form.cleaned_data['address_detail'],
+                        subdistrict=form.cleaned_data['subdistrict'],
+                        district=form.cleaned_data['district'],
+                        province=form.cleaned_data['province'],
+                        postal_code=form.cleaned_data['postal_code'],
                     )
                     Assessment.objects.create(
                         interview_request=interview,
@@ -512,7 +667,7 @@ def interview_book(request, dog_id):
 
                     profile.full_name = form.cleaned_data['full_name']
                     profile.phone = form.cleaned_data['phone']
-                    profile.address = form.cleaned_data['address']
+                    profile.address = full_address
                     if require_pdpa:
                         profile.pdpa_consent_at = timezone.now()
                     profile.save()
@@ -534,7 +689,13 @@ def interview_book(request, dog_id):
     else:
         form = InterviewBookingForm(initial=initial, require_pdpa=require_pdpa)
 
-    context = {'form': form, 'dog': dog, 'require_pdpa': require_pdpa}
+    context = {
+        'form': form,
+        'dog': dog,
+        'require_pdpa': require_pdpa,
+        'booking_horizon_days': booking_horizon_days(),
+        'slot_minutes': int(slot_duration().total_seconds() // 60),
+    }
     return render(request, 'interviews/book.html', context)
 
 
@@ -562,10 +723,14 @@ def interview_cancel(request, pk):
     )
     if interview.status not in InterviewRequest.ACTIVE_STATUSES:
         messages.error(request, 'ไม่สามารถยกเลิกนัดหมายนี้ได้')
-    elif interview.scheduled_at - timezone.now() < timedelta(hours=24):
+    elif (
+        interview.scheduled_at - timezone.now()
+        <= InterviewRequest.CANCELLATION_WINDOW
+    ):
         messages.error(
             request,
-            'สามารถยกเลิกนัดหมายได้ล่วงหน้าอย่างน้อย 24 ชั่วโมงเท่านั้น',
+            'ต้องยกเลิกนัดหมายล่วงหน้ามากกว่า 24 ชั่วโมง (1 วัน) '
+            'จึงจะยกเลิกได้',
         )
     else:
         interview.status = InterviewRequest.CANCELLED
@@ -599,13 +764,17 @@ def interview_confirm_attendance(request, pk):
     return redirect('interview_detail', pk=interview.pk)
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 def staff_interview_list(request):
     interviews = InterviewRequest.objects.select_related('dog', 'adopter')
 
     q = request.GET.get('q', '').strip()
     status = request.GET.get('status', '')
     date = request.GET.get('date', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    dog = request.GET.get('dog', '').strip()
+    upcoming = request.GET.get('upcoming', '')
 
     if q:
         interviews = interviews.filter(
@@ -614,24 +783,41 @@ def staff_interview_list(request):
             | Q(full_name__icontains=q)
             | Q(adopter__username__icontains=q)
         )
+    if dog:
+        interviews = interviews.filter(dog__name__icontains=dog)
     if status in dict(InterviewRequest.STATUS_CHOICES):
         interviews = interviews.filter(status=status)
     parsed_date = parse_date(date) if date else None
     if parsed_date:
         interviews = interviews.filter(scheduled_at__date=parsed_date)
+    parsed_from = parse_date(date_from) if date_from else None
+    if parsed_from:
+        interviews = interviews.filter(scheduled_at__date__gte=parsed_from)
+    parsed_to = parse_date(date_to) if date_to else None
+    if parsed_to:
+        interviews = interviews.filter(scheduled_at__date__lte=parsed_to)
+    if upcoming == '1':
+        interviews = interviews.filter(
+            status__in=InterviewRequest.ACTIVE_STATUSES,
+            scheduled_at__gte=timezone.now(),
+        )
 
     context = {
         'interviews': interviews,
         'q': q,
         'status': status,
         'date': date,
+        'date_from': date_from,
+        'date_to': date_to,
+        'dog': dog,
+        'upcoming': upcoming,
         'status_choices': InterviewRequest.STATUS_CHOICES,
         'reject_form': InterviewRejectForm(auto_id=False),
     }
     return render(request, 'interviews/staff_list.html', context)
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 @require_POST
 def staff_interview_confirm(request, pk):
     interview = get_object_or_404(InterviewRequest, pk=pk)
@@ -652,7 +838,7 @@ def staff_interview_confirm(request, pk):
     return redirect('staff_interview_list')
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 @require_POST
 def staff_interview_reject(request, pk):
     interview = get_object_or_404(InterviewRequest, pk=pk)
@@ -676,7 +862,7 @@ def staff_interview_reject(request, pk):
     return redirect('staff_interview_list')
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 def staff_interview_result(request, pk):
     interview = get_object_or_404(
         InterviewRequest.objects.select_related('dog', 'adopter'), pk=pk
@@ -796,7 +982,7 @@ def dog_edit(request, pk):
         form = DogForm(instance=dog)
     return render(request, 'dogs/dog_form.html', {'form': form, 'is_edit': True, 'dog': dog})
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 def staff_contract_list(request):
     contracts = AdoptionContract.objects.select_related(
         'interview_request__dog', 'interview_request__adopter'
@@ -824,7 +1010,7 @@ def staff_contract_list(request):
     return render(request, 'contracts/staff_list.html', context)
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 def staff_contract_create(request, interview_pk):
     interview = get_object_or_404(
         InterviewRequest.objects.select_related('dog', 'adopter'),
@@ -876,7 +1062,7 @@ def staff_contract_create(request, interview_pk):
     return render(request, 'contracts/form.html', context)
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 def staff_contract_detail(request, pk):
     contract = get_object_or_404(
         AdoptionContract.objects.select_related(
@@ -893,7 +1079,7 @@ def staff_contract_detail(request, pk):
     return render(request, 'contracts/staff_detail.html', context)
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 def staff_contract_edit(request, pk):
     contract = get_object_or_404(AdoptionContract, pk=pk)
     if request.method == 'POST':
@@ -914,7 +1100,7 @@ def staff_contract_edit(request, pk):
     return render(request, 'contracts/form.html', {'form': form, 'contract': contract})
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 @require_POST
 def staff_contract_activate(request, pk):
     contract = get_object_or_404(
@@ -1046,7 +1232,7 @@ def followup_submit(request, pk):
     )
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 def staff_followup_list(request):
     follow_ups = FollowUp.objects.select_related(
         'contract__interview_request__dog', 'contract__interview_request__adopter'
@@ -1072,7 +1258,7 @@ def staff_followup_list(request):
     return render(request, 'follow_ups/staff_list.html', context)
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 def staff_followup_detail(request, pk):
     follow_up = get_object_or_404(
         FollowUp.objects.select_related(
@@ -1087,7 +1273,7 @@ def staff_followup_detail(request, pk):
     )
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 def staff_followup_evaluate(request, pk):
     follow_up = get_object_or_404(
         FollowUp.objects.select_related(
@@ -1137,7 +1323,66 @@ def staff_followup_evaluate(request, pk):
     )
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
+def staff_home_visit_list(request):
+    home_visits = HomeVisit.objects.select_related(
+        'contract__interview_request__dog',
+        'contract__interview_request__adopter',
+    )
+    status = request.GET.get('status', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    if status in dict(HomeVisit.STATUS_CHOICES):
+        home_visits = home_visits.filter(status=status)
+    parsed_from = parse_date(date_from) if date_from else None
+    if parsed_from:
+        home_visits = home_visits.filter(
+            scheduled_at__date__gte=parsed_from
+        )
+    parsed_to = parse_date(date_to) if date_to else None
+    if parsed_to:
+        home_visits = home_visits.filter(scheduled_at__date__lte=parsed_to)
+
+    context = {
+        'home_visits': home_visits,
+        'status': status,
+        'date_from': date_from,
+        'date_to': date_to,
+        'status_choices': HomeVisit.STATUS_CHOICES,
+    }
+    return render(request, 'home_visits/staff_list.html', context)
+
+
+@role_required(ADOPTER)
+@require_POST
+def homevisit_confirm(request, pk):
+    home_visit = get_object_or_404(
+        HomeVisit.objects.select_related('contract'),
+        pk=pk,
+        contract__interview_request__adopter=request.user,
+    )
+    if home_visit.adopter_confirmed_at is not None:
+        messages.info(request, 'คุณได้ยืนยันนัดตรวจบ้านนี้แล้ว')
+    elif home_visit.status not in (HomeVisit.SCHEDULED, HomeVisit.APPROVED):
+        messages.error(request, 'ไม่สามารถยืนยันนัดนี้ได้ในสถานะปัจจุบัน')
+    elif home_visit.scheduled_at < timezone.now():
+        messages.error(request, 'ไม่สามารถยืนยันนัดที่ผ่านมาแล้วได้')
+    else:
+        home_visit.adopter_confirmed_at = timezone.now()
+        home_visit.save(update_fields=['adopter_confirmed_at', 'updated_at'])
+        notify_staff(
+            'ผู้รับอุปการะยืนยันนัดตรวจบ้าน',
+            f'สัญญาเลขที่ {home_visit.contract.contract_no} ได้รับการยืนยัน'
+            f'นัดตรวจบ้านวันที่ '
+            f'{timezone.localtime(home_visit.scheduled_at):%d/%m/%Y %H:%M}',
+            dedupe_key=f'homevisit-confirmed-{home_visit.pk}',
+        )
+        messages.success(request, 'ยืนยันการรับนัดตรวจบ้านสำเร็จ')
+    return redirect('contract_detail', pk=home_visit.contract.pk)
+
+
+@role_required(STAFF)
 def homevisit_create(request, contract_pk):
     contract = get_object_or_404(AdoptionContract, pk=contract_pk)
     if contract.status != AdoptionContract.ACTIVE:
@@ -1171,7 +1416,7 @@ def homevisit_create(request, contract_pk):
     )
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 def homevisit_edit(request, pk):
     home_visit = get_object_or_404(
         HomeVisit.objects.select_related('contract'), pk=pk
@@ -1181,6 +1426,7 @@ def homevisit_edit(request, pk):
         if form.is_valid():
             home_visit = form.save(commit=False)
             home_visit.status = HomeVisit.SCHEDULED
+            home_visit.adopter_confirmed_at = None
             home_visit.save()
             notify(
                 home_visit.contract.adopter,
@@ -1243,7 +1489,7 @@ def homevisit_request_reschedule(request, pk):
     return redirect('contract_detail', pk=home_visit.contract.pk)
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 @require_POST
 def homevisit_approve(request, pk):
     home_visit = get_object_or_404(
@@ -1256,6 +1502,7 @@ def homevisit_approve(request, pk):
     else:
         home_visit.scheduled_at = home_visit.requested_scheduled_at
         home_visit.status = HomeVisit.APPROVED
+        home_visit.adopter_confirmed_at = None
         home_visit.save()
         notify(
             home_visit.contract.adopter,
@@ -1271,7 +1518,7 @@ def homevisit_approve(request, pk):
     return redirect('staff_contract_detail', pk=home_visit.contract.pk)
 
 
-@role_required(STAFF, ADMIN)
+@role_required(STAFF)
 @require_POST
 def homevisit_deny(request, pk):
     home_visit = get_object_or_404(
@@ -1474,6 +1721,11 @@ def followup_stats_csv(request):
 
 HISTORY_ACTIONS = (('+', 'เพิ่ม'), ('~', 'แก้ไข'), ('-', 'ลบ'))
 
+# Notification history is operational delivery state, not a business change.
+# It would otherwise create several nearly identical rows for every event
+# (one per recipient, plus one per delivery attempt).
+AUDIT_EXCLUDED_MODELS = {'notification'}
+
 
 def _history_object_label(record):
     for field in ('name', 'title', 'code', 'contract_no'):
@@ -1488,10 +1740,13 @@ def audit_log(request):
     start, end = _report_date_range(request)
     action = request.GET.get('action', '')
     model_name = request.GET.get('model', '')
+    user_value = request.GET.get('user', '').strip()
 
     entries = []
     model_choices = []
     for model in apps.get_app_config('core').get_models():
+        if model._meta.model_name in AUDIT_EXCLUDED_MODELS:
+            continue
         history_model = getattr(getattr(model, 'history', None), 'model', None)
         if history_model is None:
             continue
@@ -1506,6 +1761,10 @@ def audit_log(request):
             history_qs = history_qs.filter(history_date__date__lte=end)
         if action in dict(HISTORY_ACTIONS):
             history_qs = history_qs.filter(history_type=action)
+        if user_value:
+            history_qs = history_qs.filter(
+                history_user__username__icontains=user_value
+            )
 
         for record in history_qs:
             entries.append({
@@ -1532,6 +1791,11 @@ def audit_log(request):
         account_events = account_events.filter(created_at__date__gte=start)
     if end:
         account_events = account_events.filter(created_at__date__lte=end)
+    if user_value:
+        account_events = account_events.filter(
+            Q(actor_username__icontains=user_value)
+            | Q(target_username__icontains=user_value)
+        )
 
     context = {
         'page_obj': page_obj,
@@ -1540,6 +1804,7 @@ def audit_log(request):
         'end_value': request.GET.get('end', ''),
         'action': action,
         'model_name': model_name,
+        'user_value': user_value,
         'action_choices': HISTORY_ACTIONS,
         'model_choices': sorted(model_choices, key=lambda item: item[1]),
         'account_events': account_events[:200],

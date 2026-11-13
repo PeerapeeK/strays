@@ -16,8 +16,7 @@
         <thead>
             <tr>
                 <th>ชื่อผู้ใช้</th>
-                <th>ชื่อ-นามสกุล</th>
-                <th>โทรศัพท์</th>
+                <th>อีเมล</th>
                 <th>บทบาท</th>
                 <th>สถานะ</th>
                 <th class="text-end">การจัดการ</th>
@@ -32,8 +31,7 @@
                             {{ row.user.username }}
                         </span>
                     </td>
-                    <td>{{ row.user.profile.full_name|default:'-' }}</td>
-                    <td>{{ row.user.profile.phone|default:'-' }}</td>
+                    <td>{{ row.user.email|default:'-' }}</td>
                     <td>{% if row.role %}<span class="badge bg-secondary">{{ row.role }}</span>{% else %}-{% endif %}</td>
                     <td>
                         {% if row.user.is_active %}
@@ -66,7 +64,7 @@
                     </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="6" class="text-center text-muted">ไม่พบผู้ใช้</td></tr>
+                <tr><td colspan="5" class="text-center text-muted">ไม่พบผู้ใช้</td></tr>
             {% endfor %}
         </tbody>
     </table>

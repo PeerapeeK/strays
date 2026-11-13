@@ -92,7 +92,11 @@ class InterviewTestBase(MediaTestCase):
         data = {
             'full_name': 'ผู้ทดสอบ ระบบ',
             'phone': '0812345678',
-            'address': '123 ถนนทดสอบ',
+            'address_detail': '123 ถนนทดสอบ',
+            'province': 'กรุงเทพมหานคร',
+            'district': 'พระนคร',
+            'subdistrict': 'พระบรมมหาราชวัง',
+            'postal_code': '10200',
             'housing_type': Assessment.OWN,
             'household_members': '2',
             'experience': 'เคยเลี้ยงสุนัข 5 ปี',
@@ -192,6 +196,61 @@ class InterviewBookingTests(InterviewTestBase):
                 self.assertContains(response, 'ช่วงเปิดทำการ')
                 self.assertFalse(InterviewRequest.objects.exists())
 
+    def test_booking_allows_slot_farther_than_seven_days(self):
+        self.client.force_login(self.adopter)
+        response = self.client.post(
+            reverse('interview_book', args=[self.dog.pk]),
+            self.booking_data(
+                scheduled_at=self.future_slot(days=20).strftime(
+                    '%Y-%m-%dT%H:%M'
+                )
+            ),
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(InterviewRequest.objects.count(), 1)
+
+    @override_settings(INTERVIEW_BOOKING_HORIZON_DAYS=30)
+    def test_booking_rejects_beyond_configured_horizon(self):
+        self.client.force_login(self.adopter)
+        response = self.client.post(
+            reverse('interview_book', args=[self.dog.pk]),
+            self.booking_data(
+                scheduled_at=self.future_slot(days=31).strftime(
+                    '%Y-%m-%dT%H:%M'
+                )
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ล่วงหน้าได้ไม่เกิน 30 วัน')
+        self.assertFalse(InterviewRequest.objects.exists())
+
+    def test_booking_rejects_unaligned_minute(self):
+        self.client.force_login(self.adopter)
+        response = self.client.post(
+            reverse('interview_book', args=[self.dog.pk]),
+            self.booking_data(
+                scheduled_at=self.future_slot(minute=5).strftime(
+                    '%Y-%m-%dT%H:%M'
+                )
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ตรงกับช่วงเวลานัดหมาย')
+        self.assertFalse(InterviewRequest.objects.exists())
+
+    def test_booking_accepts_last_slot_before_closing(self):
+        self.client.force_login(self.adopter)
+        response = self.client.post(
+            reverse('interview_book', args=[self.dog.pk]),
+            self.booking_data(
+                scheduled_at=self.future_slot(hour=17).strftime(
+                    '%Y-%m-%dT%H:%M'
+                )
+            ),
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(InterviewRequest.objects.count(), 1)
+
     def test_booking_rejects_taken_slot(self):
         slot = self.future_slot()
         self.create_interview(scheduled_at=slot)
@@ -235,6 +294,76 @@ class InterviewBookingTests(InterviewTestBase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(InterviewRequest.objects.exists())
+
+    def test_booking_form_groups_fields_and_uses_structured_address(self):
+        self.client.force_login(self.adopter)
+        response = self.client.get(
+            reverse('interview_book', args=[self.dog.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        for text in (
+            'ข้อมูลผู้สมัคร',
+            'ข้อมูลติดต่อและที่อยู่อาศัย',
+            'ข้อมูลที่พักอาศัย',
+            'แบบประเมินความพร้อม',
+            'รูปภาพที่อยู่อาศัย',
+            'วันและเวลาสัมภาษณ์',
+            'การยืนยันและ PDPA',
+        ):
+            with self.subTest(text=text):
+                self.assertContains(response, text)
+        for field_id in (
+            'id_province',
+            'id_district',
+            'id_subdistrict',
+            'id_postal_code',
+            'id_address_detail',
+        ):
+            with self.subTest(field=field_id):
+                self.assertContains(response, f'id="{field_id}"')
+
+    def test_booking_stores_structured_address(self):
+        self.client.force_login(self.adopter)
+        self.client.post(
+            reverse('interview_book', args=[self.dog.pk]),
+            self.booking_data(),
+        )
+        interview = InterviewRequest.objects.get()
+        self.assertEqual(interview.province, 'กรุงเทพมหานคร')
+        self.assertEqual(interview.district, 'พระนคร')
+        self.assertEqual(interview.subdistrict, 'พระบรมมหาราชวัง')
+        self.assertEqual(interview.postal_code, '10200')
+        self.assertIn('123 ถนนทดสอบ', interview.address)
+        self.assertIn('กรุงเทพมหานคร', interview.address)
+        self.assertEqual(interview.full_address, interview.address)
+
+    def test_booking_rejects_mismatched_postal_code(self):
+        self.client.force_login(self.adopter)
+        response = self.client.post(
+            reverse('interview_book', args=[self.dog.pk]),
+            self.booking_data(postal_code='99999'),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ไม่สอดคล้องกัน')
+        self.assertFalse(InterviewRequest.objects.exists())
+
+    def test_booking_rejects_district_from_another_province(self):
+        self.client.force_login(self.adopter)
+        response = self.client.post(
+            reverse('interview_book', args=[self.dog.pk]),
+            self.booking_data(district='เมืองเชียงใหม่'),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(InterviewRequest.objects.exists())
+
+    def test_legacy_address_without_structured_fields_still_displays(self):
+        interview = self.create_interview(address='ที่อยู่เดิมแบบข้อความ')
+        self.client.force_login(self.adopter)
+        response = self.client.get(
+            reverse('interview_detail', args=[interview.pk])
+        )
+        self.assertContains(response, 'ที่อยู่เดิมแบบข้อความ')
+        self.assertEqual(interview.full_address, 'ที่อยู่เดิมแบบข้อความ')
 
     def test_cannot_book_unavailable_dog(self):
         self.client.force_login(self.adopter)
@@ -438,6 +567,68 @@ class StaffInterviewViewTests(InterviewTestBase):
         ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 403)
+
+
+class StaffInterviewFilterTests(InterviewTestBase):
+    def setUp(self):
+        self.client.force_login(self.staff)
+
+    def test_filters_by_date_range(self):
+        near = self.create_interview(scheduled_at=self.future_slot(days=2))
+        far = self.create_interview(scheduled_at=self.future_slot(days=12))
+        response = self.client.get(
+            reverse('staff_interview_list'),
+            {
+                'date_from': self.future_slot(days=1).date().isoformat(),
+                'date_to': self.future_slot(days=5).date().isoformat(),
+            },
+        )
+        self.assertContains(response, near.code)
+        self.assertNotContains(response, far.code)
+
+    def test_filters_by_dog_name(self):
+        other_dog = Dog.objects.create(name='FilterOtherDog', status=Dog.AVAILABLE)
+        matching = self.create_interview()
+        hidden = self.create_interview(dog=other_dog)
+        response = self.client.get(
+            reverse('staff_interview_list'), {'dog': 'FilterOtherDog'}
+        )
+        self.assertContains(response, hidden.code)
+        self.assertNotContains(response, matching.code)
+
+    def test_filters_upcoming(self):
+        upcoming = self.create_interview(
+            status=InterviewRequest.CONFIRMED,
+            scheduled_at=timezone.now() + timedelta(days=2),
+        )
+        past = self.create_interview(
+            status=InterviewRequest.CONFIRMED,
+            scheduled_at=timezone.now() - timedelta(days=2),
+        )
+        response = self.client.get(
+            reverse('staff_interview_list'), {'upcoming': '1'}
+        )
+        self.assertContains(response, upcoming.code)
+        self.assertNotContains(response, past.code)
+
+    def test_filters_cancelled_status(self):
+        cancelled = self.create_interview(
+            status=InterviewRequest.CANCELLED
+        )
+        pending = self.create_interview(status=InterviewRequest.PENDING)
+        response = self.client.get(
+            reverse('staff_interview_list'),
+            {'status': InterviewRequest.CANCELLED},
+        )
+        self.assertContains(response, cancelled.code)
+        self.assertNotContains(response, pending.code)
+
+    def test_adopter_cannot_use_filtered_staff_list(self):
+        self.client.force_login(self.adopter)
+        response = self.client.get(
+            reverse('staff_interview_list'), {'status': 'pending'}
+        )
+        self.assertEqual(response.status_code, 403)
 
 
 class StaffInterviewActionVisibilityTests(InterviewTestBase):

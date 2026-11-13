@@ -18,7 +18,10 @@
             {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
             <button type="submit" class="btn btn-primary w-100">เข้าสู่ระบบ</button>
         </form>
-        <p class="mt-3 mb-0 text-center small">
+        <p class="mt-3 mb-1 text-center small">
+            <a href="{% url 'password_reset' %}">ลืมรหัสผ่าน?</a>
+        </p>
+        <p class="mb-0 text-center small">
             ยังไม่มีบัญชี? <a href="{% url 'register' %}">สมัครสมาชิก</a>
         </p>
     </div>

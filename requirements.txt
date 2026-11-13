@@ -10,3 +10,4 @@ django-simple-history==3.13.0
 django-axes==9.0.0
 pillow==13.0.0
 gunicorn==26.2.0
+requests==2.34.2

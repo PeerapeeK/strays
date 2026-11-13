@@ -40,6 +40,7 @@
                                 <a class="site-nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">เมนูผู้รับอุปการะ</a>
                                 <ul class="dropdown-menu site-dropdown">
                                     <li><a class="dropdown-item {% if current == 'dashboard' or current == 'adopter_dashboard' %}is-active{% endif %}" href="{% url 'dashboard' %}">แดชบอร์ด</a></li>
+                                    <li><a class="dropdown-item {% if current == 'notification_list' %}is-active{% endif %}" href="{% url 'notification_list' %}">การแจ้งเตือน</a></li>
                                     <li><a class="dropdown-item {% if current == 'interview_list' or current == 'interview_detail' %}is-active{% endif %}" href="{% url 'interview_list' %}">การนัดสัมภาษณ์</a></li>
                                     <li><a class="dropdown-item {% if current == 'contract_list' or current == 'contract_detail' %}is-active{% endif %}" href="{% url 'contract_list' %}">สัญญารับอุปการะ</a></li>
                                     <li><a class="dropdown-item {% if current == 'followup_list' or current == 'followup_detail' %}is-active{% endif %}" href="{% url 'followup_list' %}">การติดตามผล</a></li>
@@ -51,12 +52,20 @@
                                 <a class="site-nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">เมนูเจ้าหน้าที่</a>
                                 <ul class="dropdown-menu site-dropdown">
                                     <li><a class="dropdown-item {% if current == 'dashboard' or current == 'staff_dashboard' %}is-active{% endif %}" href="{% url 'dashboard' %}">แดชบอร์ด</a></li>
-                                    <li><a class="dropdown-item {% if current == 'dog_list' or current == 'dog_create' or current == 'dog_detail' or current == 'dog_edit' %}is-active{% endif %}" href="{% url 'dog_list' %}">จัดการสุนัข</a></li>
-                                    <li><a class="dropdown-item {% if current == 'staff_interview_list' or current == 'staff_interview_result' %}is-active{% endif %}" href="{% url 'staff_interview_list' %}">จัดการนัดสัมภาษณ์</a></li>
+                                    <li><h6 class="dropdown-header">สุนัข</h6></li>
+                                    <li><a class="dropdown-item {% if current == 'dog_list' or current == 'dog_create' or current == 'dog_detail' or current == 'dog_edit' %}is-active{% endif %}" href="{% url 'dog_list' %}">จัดการข้อมูลสุนัข</a></li>
+                                    <li><h6 class="dropdown-header">นัดสัมภาษณ์</h6></li>
+                                    <li><a class="dropdown-item {% if current == 'staff_interview_list' or current == 'staff_interview_result' %}is-active{% endif %}" href="{% url 'staff_interview_list' %}">คำขอรับเลี้ยง / นัดสัมภาษณ์</a></li>
+                                    <li><h6 class="dropdown-header">สัญญา</h6></li>
                                     <li><a class="dropdown-item {% if current == 'staff_contract_list' or current == 'staff_contract_detail' or current == 'staff_contract_edit' or current == 'staff_contract_create' %}is-active{% endif %}" href="{% url 'staff_contract_list' %}">จัดการสัญญา</a></li>
+                                    <li><h6 class="dropdown-header">ตรวจเยี่ยมบ้าน</h6></li>
+                                    <li><a class="dropdown-item {% if current == 'staff_home_visit_list' or current == 'homevisit_create' or current == 'homevisit_edit' %}is-active{% endif %}" href="{% url 'staff_home_visit_list' %}">นัดตรวจบ้าน</a></li>
+                                    <li><h6 class="dropdown-header">ติดตามผล</h6></li>
                                     <li><a class="dropdown-item {% if current == 'staff_followup_list' or current == 'staff_followup_detail' %}is-active{% endif %}" href="{% url 'staff_followup_list' %}">จัดการติดตามผล</a></li>
+                                    <li><h6 class="dropdown-header">รายงาน</h6></li>
                                     <li><a class="dropdown-item {% if current == 'adoption_stats' %}is-active{% endif %}" href="{% url 'adoption_stats' %}">รายงานการรับอุปการะ</a></li>
                                     <li><a class="dropdown-item {% if current == 'followup_stats' %}is-active{% endif %}" href="{% url 'followup_stats' %}">รายงานการติดตามผล</a></li>
+                                    <li><a class="dropdown-item {% if current == 'notification_list' %}is-active{% endif %}" href="{% url 'notification_list' %}">การแจ้งเตือน</a></li>
                                     <li><a class="dropdown-item {% if current == 'my_profile' %}is-active{% endif %}" href="{% url 'my_profile' %}">โปรไฟล์ของฉัน</a></li>
                                 </ul>
                             </li>
@@ -65,15 +74,16 @@
                                 <a class="site-nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">เมนูผู้ดูแลระบบ</a>
                                 <ul class="dropdown-menu site-dropdown">
                                     <li><a class="dropdown-item {% if current == 'dashboard' or current == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'dashboard' %}">แดชบอร์ด</a></li>
-                                    <li><a class="dropdown-item {% if current == 'dog_list' or current == 'dog_create' or current == 'dog_detail' or current == 'dog_edit' %}is-active{% endif %}" href="{% url 'dog_list' %}">จัดการสุนัข</a></li>
-                                    <li><a class="dropdown-item {% if current == 'staff_interview_list' or current == 'staff_interview_result' %}is-active{% endif %}" href="{% url 'staff_interview_list' %}">จัดการนัดสัมภาษณ์</a></li>
-                                    <li><a class="dropdown-item {% if current == 'staff_contract_list' or current == 'staff_contract_detail' or current == 'staff_contract_edit' or current == 'staff_contract_create' %}is-active{% endif %}" href="{% url 'staff_contract_list' %}">จัดการสัญญา</a></li>
-                                    <li><a class="dropdown-item {% if current == 'staff_followup_list' or current == 'staff_followup_detail' %}is-active{% endif %}" href="{% url 'staff_followup_list' %}">จัดการติดตามผล</a></li>
-                                    <li><a class="dropdown-item {% if current == 'adoption_stats' %}is-active{% endif %}" href="{% url 'adoption_stats' %}">รายงานการรับอุปการะ</a></li>
-                                    <li><a class="dropdown-item {% if current == 'followup_stats' %}is-active{% endif %}" href="{% url 'followup_stats' %}">รายงานการติดตามผล</a></li>
+                                    <li><h6 class="dropdown-header">บัญชีผู้ใช้</h6></li>
                                     <li><a class="dropdown-item {% if current == 'user_list' or current == 'user_edit' or current == 'staff_create' %}is-active{% endif %}" href="{% url 'user_list' %}">จัดการผู้ใช้</a></li>
                                     <li><a class="dropdown-item {% if current == 'staff_create' %}is-active{% endif %}" href="{% url 'staff_create' %}">สร้างบัญชีเจ้าหน้าที่</a></li>
                                     <li><a class="dropdown-item {% if current == 'audit_log' %}is-active{% endif %}" href="{% url 'audit_log' %}">บันทึกการใช้งาน</a></li>
+                                    <li><h6 class="dropdown-header">รายงาน</h6></li>
+                                    <li><a class="dropdown-item {% if current == 'adoption_stats' %}is-active{% endif %}" href="{% url 'adoption_stats' %}">รายงานการรับอุปการะ</a></li>
+                                    <li><a class="dropdown-item {% if current == 'followup_stats' %}is-active{% endif %}" href="{% url 'followup_stats' %}">รายงานการติดตามผล</a></li>
+                                    <li><h6 class="dropdown-header">ข้อมูลระบบ</h6></li>
+                                    <li><a class="dropdown-item {% if current == 'dog_list' or current == 'dog_create' or current == 'dog_detail' or current == 'dog_edit' %}is-active{% endif %}" href="{% url 'dog_list' %}">จัดการข้อมูลสุนัข</a></li>
+                                    <li><a class="dropdown-item {% if current == 'notification_list' %}is-active{% endif %}" href="{% url 'notification_list' %}">การแจ้งเตือน</a></li>
                                     <li><a class="dropdown-item {% if current == 'my_profile' %}is-active{% endif %}" href="{% url 'my_profile' %}">โปรไฟล์ของฉัน</a></li>
                                 </ul>
                             </li>
@@ -82,6 +92,12 @@
                 </ul>
                 <div class="site-nav-actions">
                     {% if user.is_authenticated %}
+                        <a class="site-nav-link notification-bell" href="{% url 'notification_list' %}" title="การแจ้งเตือน" aria-label="การแจ้งเตือน">
+                            <span aria-hidden="true">🔔</span>
+                            {% if unread_notifications %}
+                                <span class="badge rounded-pill bg-danger">{{ unread_notifications }}</span>
+                            {% endif %}
+                        </a>
                         <a class="site-user" href="{% url 'my_profile' %}" title="โปรไฟล์ของฉัน">
                             {% avatar user 32 %}
                             <span>{{ user.username }}</span>

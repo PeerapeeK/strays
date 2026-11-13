@@ -193,31 +193,58 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
+_EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend'
+    if DEBUG
+    else 'django.core.mail.backends.smtp.EmailBackend',
+)
+_EMAIL_OPTIONS = {}
+if _EMAIL_BACKEND.endswith('smtp.EmailBackend'):
+    _EMAIL_OPTIONS = {
+        'host': os.environ.get('EMAIL_HOST', 'localhost'),
+        'port': int(os.environ.get('EMAIL_PORT', '25')),
+        'username': os.environ.get('EMAIL_HOST_USER', ''),
+        'password': os.environ.get('EMAIL_HOST_PASSWORD', ''),
+        'use_tls': _env_bool('EMAIL_USE_TLS', False),
+        'use_ssl': _env_bool('EMAIL_USE_SSL', False),
+        'timeout': int(os.environ.get('EMAIL_TIMEOUT', '10')),
+    }
+
 MAILERS = {
     'default': {
-        'BACKEND': os.environ.get(
-            'EMAIL_BACKEND',
-            'django.core.mail.backends.console.EmailBackend'
-            if DEBUG
-            else 'django.core.mail.backends.smtp.EmailBackend',
-        ),
+        'BACKEND': _EMAIL_BACKEND,
+        'OPTIONS': _EMAIL_OPTIONS,
     },
 }
+
+DEFAULT_FROM_EMAIL = os.environ.get(
+    'DEFAULT_FROM_EMAIL', 'noreply@straymatch.local'
+)
 
 
 # Push notifications
 # When PUSH_PROVIDER_URL is empty the dispatcher runs in development mode:
 # notifications are marked as sent without making an HTTP request.
 
-PUSH_PROVIDER_URL = ''
-PUSH_TIMEOUT = 10
+PUSH_PROVIDER_URL = os.environ.get('PUSH_PROVIDER_URL', '')
+PUSH_TIMEOUT = int(os.environ.get('PUSH_TIMEOUT', '10'))
 # One initial attempt plus three retries (NFR 9).
-PUSH_MAX_ATTEMPTS = 4
+PUSH_MAX_ATTEMPTS = int(os.environ.get('PUSH_MAX_ATTEMPTS', '4'))
 # Base delay in seconds; each retry backs off exponentially.
-PUSH_RETRY_DELAY = 60
+PUSH_RETRY_DELAY = int(os.environ.get('PUSH_RETRY_DELAY', '60'))
 
 # Reminder window (days ahead) used by the queue_reminders command.
 REMINDER_DAYS = 3
+
+# Interview booking: slots are anchored to the shelter opening time and repeat
+# every INTERVIEW_SLOT_MINUTES. Users may book up to the configured horizon.
+INTERVIEW_SLOT_MINUTES = int(
+    os.environ.get('INTERVIEW_SLOT_MINUTES', '60')
+)
+INTERVIEW_BOOKING_HORIZON_DAYS = int(
+    os.environ.get('INTERVIEW_BOOKING_HORIZON_DAYS', '60')
+)
 
 
 # Reverse-proxy/production hardening. The app only receives traffic from nginx

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load status_tags %}
+
+{% block title %}การแจ้งเตือน{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h1 class="h3 mb-1">การแจ้งเตือน</h1>
+        <p class="text-muted mb-0">ข่าวสารและความคืบหน้าของขั้นตอนการรับอุปการะของคุณ</p>
+    </div>
+    {% if unread_count %}
+        <form method="post" action="{% url 'notifications_mark_all_read' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-secondary btn-sm">ทำเครื่องหมายว่าอ่านทั้งหมด</button>
+        </form>
+    {% endif %}
+</div>
+
+{% for notification in notifications %}
+    <div class="card shadow-sm mb-3 {% if notification.is_unread %}border-primary{% endif %}">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                <div>
+                    <h2 class="h5 mb-1">
+                        {{ notification.title }}
+                        {% if notification.is_unread %}
+                            <span class="badge bg-primary">ใหม่</span>
+                        {% endif %}
+                    </h2>
+                    <p class="mb-2">{{ notification.message|linebreaksbr }}</p>
+                    <p class="text-muted small mb-0">
+                        {{ notification.created_at|date:'d/m/Y H:i' }} ·
+                        <span class="status-pill {{ notification.status|status_class }}">{{ notification.get_status_display }}</span>
+                    </p>
+                </div>
+                {% if notification.is_unread %}
+                    <form method="post" action="{% url 'notification_mark_read' notification.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-primary">ทำเครื่องหมายว่าอ่านแล้ว</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% empty %}
+    <div class="alert alert-info">ยังไม่มีการแจ้งเตือน</div>
+{% endfor %}
+
+{% if page_obj.paginator.num_pages > 1 %}
+    <nav aria-label="Notification pagination">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                <a class="page-link" href="?page={% if page_obj.has_previous %}{{ page_obj.previous_page_number }}{% else %}1{% endif %}">ก่อนหน้า</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">หน้า {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                <a class="page-link" href="?page={% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}{{ page_obj.number }}{% endif %}">ถัดไป</a>
+            </li>
+        </ul>
+    </nav>
+{% endif %}
+{% endblock %}

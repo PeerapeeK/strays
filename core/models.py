@@ -234,6 +234,7 @@ class InterviewRequest(models.Model):
         (COMPLETED, 'เสร็จสิ้น'),
     ]
     ACTIVE_STATUSES = (PENDING, CONFIRMED)
+    CANCELLATION_WINDOW = timedelta(hours=24)
 
     code = models.CharField('รหัสการนัดหมาย', max_length=12, unique=True, editable=False)
     adopter = models.ForeignKey(
@@ -255,6 +256,11 @@ class InterviewRequest(models.Model):
     full_name = models.CharField('ชื่อ-นามสกุล', max_length=150)
     phone = models.CharField('เบอร์โทรศัพท์', max_length=20)
     address = models.TextField('ที่อยู่')
+    address_detail = models.CharField('รายละเอียดที่อยู่', max_length=255, blank=True)
+    subdistrict = models.CharField('ตำบล/แขวง', max_length=150, blank=True)
+    district = models.CharField('อำเภอ/เขต', max_length=150, blank=True)
+    province = models.CharField('จังหวัด', max_length=150, blank=True)
+    postal_code = models.CharField('รหัสไปรษณีย์', max_length=5, blank=True)
     reject_reason = models.TextField('เหตุผลการปฏิเสธ', blank=True)
     attendance_confirmed_at = models.DateTimeField(
         'เวลายืนยันการเข้าร่วม', null=True, blank=True
@@ -281,10 +287,32 @@ class InterviewRequest(models.Model):
         super().save(*args, **kwargs)
 
     @property
+    def full_address(self):
+        """Return the structured address, falling back to legacy free text."""
+        if not any(
+            (self.address_detail, self.subdistrict, self.district,
+             self.province, self.postal_code)
+        ):
+            return self.address
+        locality = ' '.join(
+            part for part in (
+                f'ต.{self.subdistrict}' if self.subdistrict else '',
+                f'อ.{self.district}' if self.district else '',
+                f'จ.{self.province}' if self.province else '',
+                self.postal_code,
+            ) if part
+        )
+        return ' '.join(
+            part for part in (self.address_detail.strip(), locality) if part
+        )
+
+    @property
     def can_cancel(self):
         if self.status not in self.ACTIVE_STATUSES:
             return False
-        return self.scheduled_at - timezone.now() >= timedelta(hours=24)
+        return (
+            self.scheduled_at - timezone.now() > self.CANCELLATION_WINDOW
+        )
 
     @property
     def can_confirm_attendance(self):
@@ -444,6 +472,7 @@ class Notification(models.Model):
     dedupe_key = models.CharField(
         'รหัสป้องกันการซ้ำ', max_length=200, unique=True, null=True, blank=True
     )
+    read_at = models.DateTimeField('เวลาอ่าน', null=True, blank=True)
     created_at = models.DateTimeField('สร้างเมื่อ', auto_now_add=True)
     updated_at = models.DateTimeField('แก้ไขเมื่อ', auto_now=True)
     history = HistoricalRecords()
@@ -455,6 +484,10 @@ class Notification(models.Model):
 
     def __str__(self):
         return f'{self.title} -> {self.user.get_username()}'
+
+    @property
+    def is_unread(self):
+        return self.read_at is None
 
 
 def notify(user, title, message, dedupe_key=None):
@@ -561,6 +594,13 @@ class FollowUp(models.Model):
     def __str__(self):
         return f'ติดตามผล {self.day_offset} วัน - {self.contract.contract_no}'
 
+    @property
+    def is_overdue(self):
+        """Overdue is derived from the due date and submission state."""
+        if self.status == self.SUBMITTED:
+            return False
+        return self.status == self.OVERDUE or self.due_date < timezone.localdate()
+
 
 class FollowUpPhoto(models.Model):
     follow_up = models.ForeignKey(
@@ -624,6 +664,9 @@ class HomeVisit(models.Model):
     reschedule_requested_at = models.DateTimeField(
         'ขอเลื่อนนัดเมื่อ', null=True, blank=True
     )
+    adopter_confirmed_at = models.DateTimeField(
+        'เวลาที่ยอมรับนัด', null=True, blank=True
+    )
     created_at = models.DateTimeField('สร้างเมื่อ', auto_now_add=True)
     updated_at = models.DateTimeField('แก้ไขเมื่อ', auto_now=True)
     history = HistoricalRecords()
@@ -635,6 +678,14 @@ class HomeVisit(models.Model):
 
     def __str__(self):
         return f'ตรวจบ้าน {self.contract.contract_no} - {self.scheduled_at:%d/%m/%Y %H:%M}'
+
+    @property
+    def can_confirm(self):
+        return (
+            self.adopter_confirmed_at is None
+            and self.status in (self.SCHEDULED, self.APPROVED)
+            and self.scheduled_at >= timezone.now()
+        )
 
 
 class FollowUpEvaluation(models.Model):

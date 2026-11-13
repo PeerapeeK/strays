@@ -28,7 +28,7 @@
             <dt class="col-sm-3">เบอร์โทรศัพท์</dt>
             <dd class="col-sm-9">{{ interview.phone }}</dd>
             <dt class="col-sm-3">ที่อยู่</dt>
-            <dd class="col-sm-9">{{ interview.address|linebreaksbr }}</dd>
+            <dd class="col-sm-9">{{ interview.full_address|linebreaksbr }}</dd>
             <dt class="col-sm-3">ยืนยันการเข้าร่วม</dt>
             <dd class="col-sm-9">
                 {% if interview.attendance_confirmed_at %}
@@ -113,4 +113,9 @@
         </form>
     {% endif %}
 </div>
+{% if interview.status == 'pending' or interview.status == 'confirmed' %}
+    <p class="text-muted small mt-2 mb-0">
+        หากต้องการยกเลิก ต้องยกเลิกก่อนเวลานัดหมายมากกว่า 24 ชั่วโมง (1 วัน)
+    </p>
+{% endif %}
 {% endblock %}

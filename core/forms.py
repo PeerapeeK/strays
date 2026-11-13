@@ -1,11 +1,25 @@
+from datetime import timedelta
+
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordResetForm,
+    SetPasswordForm,
+    UserCreationForm,
+)
 from django.contrib.auth.models import Group, User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
 from django.core.validators import RegexValidator
 from django.utils import timezone
 
+from .addresses import (
+    address_is_valid,
+    compose_address,
+    district_names,
+    province_names,
+    subdistrict_names,
+)
 from .images import delete_stored_file, process_profile_photo
 from .models import (
     Assessment,
@@ -19,6 +33,11 @@ from .models import (
     ShelterSettings,
 )
 from .permissions import ADOPTER, STAFF
+from .scheduling import (
+    booking_horizon_days,
+    is_slot_aligned,
+    slot_choice_groups,
+)
 from .validators import validate_image
 
 
@@ -88,6 +107,14 @@ class BootstrapFormMixin:
 
 
 class LoginForm(BootstrapFormMixin, AuthenticationForm):
+    pass
+
+
+class PasswordResetRequestForm(BootstrapFormMixin, PasswordResetForm):
+    pass
+
+
+class PasswordResetConfirmForm(BootstrapFormMixin, SetPasswordForm):
     pass
 
 
@@ -203,6 +230,13 @@ class ProfileForm(BootstrapFormMixin, forms.ModelForm):
 
 
 class UserEditForm(BootstrapFormMixin, forms.ModelForm):
+    """Admin account form.
+
+    System administrators manage the account itself (username, email, active
+    state). Personal/contact details stay with the account owner in
+    ``my_profile`` and are deliberately not exposed here (least privilege).
+    """
+
     username = forms.CharField(
         label='ชื่อผู้ใช้',
         max_length=150,
@@ -215,9 +249,6 @@ class UserEditForm(BootstrapFormMixin, forms.ModelForm):
         error_messages={'required': 'กรุณากรอกชื่อผู้ใช้'},
         help_text='ใช้ตัวอักษรภาษาอังกฤษ ตัวเลข และ @ . + - _ เท่านั้น',
     )
-    full_name = forms.CharField(label='ชื่อ-นามสกุล', max_length=150, required=False)
-    phone = forms.CharField(label='เบอร์โทรศัพท์', max_length=20, required=False)
-    address = forms.CharField(label='ที่อยู่', widget=forms.Textarea, required=False)
     remove_photo = forms.BooleanField(
         label='ลบรูปโปรไฟล์', required=False
     )
@@ -236,10 +267,6 @@ class UserEditForm(BootstrapFormMixin, forms.ModelForm):
             profile = getattr(self.instance, 'profile', None)
         if not allow_remove_photo or not (profile and profile.photo):
             self.fields.pop('remove_photo', None)
-        if profile:
-            self.fields['full_name'].initial = profile.full_name
-            self.fields['phone'].initial = profile.phone
-            self.fields['address'].initial = profile.address
 
     def clean_username(self):
         username = self.cleaned_data['username']
@@ -261,15 +288,11 @@ class UserEditForm(BootstrapFormMixin, forms.ModelForm):
 
         user = super().save(commit=commit)
         if commit:
-            profile = user.profile
-            profile.full_name = self.cleaned_data.get('full_name', '')
-            profile.phone = self.cleaned_data.get('phone', '')
-            profile.address = self.cleaned_data.get('address', '')
             remove_photo = self.cleaned_data.get('remove_photo')
-            if remove_photo and profile.photo:
-                profile.photo = ''
-            profile.save()
             if remove_photo and old_photo:
+                profile = user.profile
+                profile.photo = ''
+                profile.save(update_fields=['photo'])
                 delete_stored_file(old_photo)
         return user
 
@@ -283,7 +306,9 @@ class DogForm(BootstrapFormMixin, forms.ModelForm):
             'photo', 'intake_date',
         )
         widgets = {
-            'intake_date': forms.DateInput(attrs={'type': 'date'}),
+            'intake_date': forms.DateInput(
+                attrs={'type': 'date'}, format='%Y-%m-%d'
+            ),
             'description': forms.Textarea(attrs={'rows': 4}),
             'photo': forms.ClearableFileInput(attrs={
                 'accept': '.jpg,.jpeg,.png,image/*',
@@ -312,7 +337,9 @@ class DogHealthRecordForm(BootstrapFormMixin, forms.ModelForm):
         model = DogHealthRecord
         fields = ('record_date', 'title', 'description', 'veterinarian')
         widgets = {
-            'record_date': forms.DateInput(attrs={'type': 'date'}),
+            'record_date': forms.DateInput(
+                attrs={'type': 'date'}, format='%Y-%m-%d'
+            ),
             'description': forms.Textarea(attrs={'rows': 3}),
         }
 
@@ -328,10 +355,47 @@ class InterviewBookingForm(BootstrapFormMixin, forms.Form):
         max_length=20,
         error_messages={'required': 'กรุณากรอกเบอร์โทรศัพท์'},
     )
-    address = forms.CharField(
-        label='ที่อยู่',
+    address_detail = forms.CharField(
+        label='รายละเอียดที่อยู่ (บ้านเลขที่/ถนน/ซอย)',
         widget=forms.Textarea,
-        error_messages={'required': 'กรุณากรอกที่อยู่'},
+        error_messages={'required': 'กรุณากรอกรายละเอียดที่อยู่'},
+    )
+    province = forms.ChoiceField(
+        label='จังหวัด',
+        choices=(),
+        error_messages={
+            'required': 'กรุณาเลือกจังหวัด',
+            'invalid_choice': 'กรุณาเลือกจังหวัดจากรายการ',
+        },
+    )
+    district = forms.ChoiceField(
+        label='อำเภอ/เขต',
+        choices=(),
+        error_messages={
+            'required': 'กรุณาเลือกอำเภอ/เขต',
+            'invalid_choice': 'กรุณาเลือกอำเภอ/เขตจากรายการ',
+        },
+    )
+    subdistrict = forms.ChoiceField(
+        label='ตำบล/แขวง',
+        choices=(),
+        error_messages={
+            'required': 'กรุณาเลือกตำบล/แขวง',
+            'invalid_choice': 'กรุณาเลือกตำบล/แขวงจากรายการ',
+        },
+    )
+    postal_code = forms.CharField(
+        label='รหัสไปรษณีย์',
+        max_length=5,
+        min_length=5,
+        validators=[
+            RegexValidator(r'^\d{5}$', 'รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก')
+        ],
+        error_messages={
+            'required': 'กรุณากรอกรหัสไปรษณีย์',
+            'min_length': 'รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก',
+            'max_length': 'รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก',
+        },
     )
     housing_type = forms.ChoiceField(
         label='ประเภทที่อยู่อาศัย',
@@ -367,9 +431,7 @@ class InterviewBookingForm(BootstrapFormMixin, forms.Form):
     )
     scheduled_at = forms.DateTimeField(
         label='วันและเวลาสัมภาษณ์',
-        widget=forms.DateTimeInput(
-            attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'
-        ),
+        widget=forms.Select,
         input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M'],
         error_messages={
             'required': 'กรุณาเลือกวันและเวลาสัมภาษณ์',
@@ -392,14 +454,18 @@ class InterviewBookingForm(BootstrapFormMixin, forms.Form):
     HELP_TEXTS = {
         'full_name': 'ใช้ชื่อ-นามสกุลเดียวกับบัตรประชาชน',
         'phone': 'ระบุเบอร์โทรศัพท์ที่ติดต่อได้สะดวก',
-        'address': 'ระบุที่อยู่ปัจจุบันโดยละเอียด',
+        'address_detail': 'บ้านเลขที่ ถนน ซอย หรือรายละเอียดเพิ่มเติม',
+        'province': 'เลือกจังหวัดตามที่อยู่ปัจจุบัน',
+        'district': 'เลือกอำเภอ/เขตตามจังหวัดที่เลือก',
+        'subdistrict': 'เลือกตำบล/แขวงตามอำเภอที่เลือก',
+        'postal_code': 'กรอกรหัสไปรษณีย์ 5 หลัก',
         'housing_type': 'เลือกประเภทที่พักอาศัยที่ท่านอยู่ปัจจุบัน',
         'household_members': 'นับรวมตัวท่านเอง',
         'has_other_pets': 'เช่น สุนัข แมว หรือสัตว์เลี้ยงอื่น ๆ',
         'experience': 'อธิบายประสบการณ์การเลี้ยงสุนัข (ถ้ามี)',
         'motivation': 'เล่าเหตุผลและความพร้อมในการรับอุปการะ',
         'agree_home_visit': 'เจ้าหน้าที่อาจเข้าตรวจบ้านก่อนและหลังรับเลี้ยง',
-        'scheduled_at': 'เลือกวันและเวลาในช่วงเปิดทำการของศูนย์',
+        'scheduled_at': 'เลือกวันและเวลาที่ว่างในช่วงเปิดทำการของศูนย์',
         'housing_photos': 'รับเฉพาะไฟล์ JPG, JPEG หรือ PNG ขนาดไม่เกิน 5 MB ต่อรูป',
     }
 
@@ -408,6 +474,10 @@ class InterviewBookingForm(BootstrapFormMixin, forms.Form):
         for name, text in self.HELP_TEXTS.items():
             if name in self.fields:
                 self.fields[name].help_text = text
+
+        self._configure_address_fields()
+        self.fields['scheduled_at'].widget.choices = slot_choice_groups()
+
         self.fields['housing_photos'].widget.attrs.update({
             'data-photo-preview': 'housing-photo-preview',
             'data-photo-error': 'housing-photo-error',
@@ -419,6 +489,58 @@ class InterviewBookingForm(BootstrapFormMixin, forms.Form):
             self.fields['pdpa_consent'].disabled = True
             self.fields['pdpa_consent'].initial = True
 
+    def _configure_address_fields(self):
+        province = self.data.get('province') if self.is_bound else self.initial.get('province')
+        district = self.data.get('district') if self.is_bound else self.initial.get('district')
+
+        self.fields['province'].choices = [
+            ('', 'เลือกจังหวัด')
+        ] + [(name, name) for name in province_names()]
+
+        district_choices = [('', 'เลือกอำเภอ/เขต')]
+        if province in province_names():
+            district_choices += [
+                (name, name) for name in district_names(province)
+            ]
+        self.fields['district'].choices = district_choices
+
+        subdistrict_choices = [('', 'เลือกตำบล/แขวง')]
+        if (
+            province in province_names()
+            and district in district_names(province)
+        ):
+            subdistrict_choices += [
+                (name, name)
+                for name in subdistrict_names(province, district)
+            ]
+        self.fields['subdistrict'].choices = subdistrict_choices
+
+    def clean(self):
+        cleaned = super().clean()
+        province = cleaned.get('province')
+        district = cleaned.get('district')
+        subdistrict = cleaned.get('subdistrict')
+        postal_code = cleaned.get('postal_code')
+        if province and district and subdistrict and postal_code:
+            if not address_is_valid(
+                province, district, subdistrict, postal_code
+            ):
+                raise ValidationError(
+                    'จังหวัด อำเภอ/เขต ตำบล/แขวง และรหัสไปรษณีย์ '
+                    'ไม่สอดคล้องกัน กรุณาตรวจสอบอีกครั้ง'
+                )
+        return cleaned
+
+    def get_full_address(self):
+        data = self.cleaned_data
+        return compose_address(
+            data.get('address_detail', ''),
+            data.get('subdistrict', ''),
+            data.get('district', ''),
+            data.get('province', ''),
+            data.get('postal_code', ''),
+        )
+
     def clean_scheduled_at(self):
         scheduled_at = self.cleaned_data['scheduled_at']
         if timezone.is_naive(scheduled_at):
@@ -429,11 +551,25 @@ class InterviewBookingForm(BootstrapFormMixin, forms.Form):
             raise ValidationError('กรุณาเลือกวันและเวลาในอนาคต')
 
         shelter = ShelterSettings.load()
-        local_time = timezone.localtime(scheduled_at).time()
-        if not (shelter.opening_time <= local_time < shelter.closing_time):
+        local = timezone.localtime(scheduled_at)
+        if not (shelter.opening_time <= local.time() < shelter.closing_time):
             raise ValidationError(
                 'กรุณาเลือกเวลาในช่วงเปิดทำการ '
                 f'{shelter.opening_time:%H:%M}-{shelter.closing_time:%H:%M} น.'
+            )
+
+        horizon_end = timezone.localdate() + timedelta(
+            days=booking_horizon_days()
+        )
+        if local.date() > horizon_end:
+            raise ValidationError(
+                'สามารถจองคิวล่วงหน้าได้ไม่เกิน '
+                f'{booking_horizon_days()} วัน'
+            )
+
+        if not is_slot_aligned(scheduled_at, shelter=shelter):
+            raise ValidationError(
+                'กรุณาเลือกเวลาให้ตรงกับช่วงเวลานัดหมายที่ระบบกำหนด'
             )
         return scheduled_at
 
@@ -488,7 +624,9 @@ class ContractForm(BootstrapFormMixin, forms.ModelForm):
         fields = ('terms', 'start_date')
         widgets = {
             'terms': forms.Textarea(attrs={'rows': 10}),
-            'start_date': forms.DateInput(attrs={'type': 'date'}),
+            'start_date': forms.DateInput(
+                attrs={'type': 'date'}, format='%Y-%m-%d'
+            ),
         }
         labels = {
             'terms': 'ข้อสัญญา',

@@ -14,7 +14,7 @@
         <label class="form-label" for="end">ถึงวันที่</label>
         <input type="date" class="form-control" id="end" name="end" value="{{ end_value }}">
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <label class="form-label" for="model">โมเดล</label>
         <select class="form-select" id="model" name="model">
             <option value="">ทั้งหมด</option>
@@ -32,7 +32,11 @@
             {% endfor %}
         </select>
     </div>
-    <div class="col-md-3 d-flex gap-2">
+    <div class="col-md-2">
+        <label class="form-label" for="user">ผู้ใช้</label>
+        <input type="text" class="form-control" id="user" name="user" value="{{ user_value }}" placeholder="ชื่อผู้ใช้">
+    </div>
+    <div class="col-md-2 d-flex gap-2">
         <button type="submit" class="btn btn-primary flex-fill">กรองข้อมูล</button>
         <a class="btn btn-outline-secondary" href="{% url 'audit_log' %}">ล้าง</a>
     </div>
@@ -72,13 +76,13 @@
         <nav aria-label="Audit log pagination">
             <ul class="pagination justify-content-center">
                 <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
-                    <a class="page-link" href="?page={% if page_obj.has_previous %}{{ page_obj.previous_page_number }}{% else %}1{% endif %}&start={{ start_value|urlencode }}&end={{ end_value|urlencode }}&action={{ action|urlencode }}&model={{ model_name|urlencode }}">ก่อนหน้า</a>
+                    <a class="page-link" href="?page={% if page_obj.has_previous %}{{ page_obj.previous_page_number }}{% else %}1{% endif %}&start={{ start_value|urlencode }}&end={{ end_value|urlencode }}&action={{ action|urlencode }}&model={{ model_name|urlencode }}&user={{ user_value|urlencode }}">ก่อนหน้า</a>
                 </li>
                 <li class="page-item disabled">
                     <span class="page-link">หน้า {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
                 </li>
                 <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
-                    <a class="page-link" href="?page={% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}{{ page_obj.number }}{% endif %}&start={{ start_value|urlencode }}&end={{ end_value|urlencode }}&action={{ action|urlencode }}&model={{ model_name|urlencode }}">ถัดไป</a>
+                    <a class="page-link" href="?page={% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}{{ page_obj.number }}{% endif %}&start={{ start_value|urlencode }}&end={{ end_value|urlencode }}&action={{ action|urlencode }}&model={{ model_name|urlencode }}&user={{ user_value|urlencode }}">ถัดไป</a>
                 </li>
             </ul>
         </nav>

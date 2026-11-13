@@ -126,7 +126,7 @@ class UsernameChangeTests(UserAdminTestBase):
             ).exists()
         )
 
-    def test_edit_form_has_only_one_name_field(self):
+    def test_edit_form_hides_personal_fields_from_admin(self):
         self.client.force_login(self.admin)
         response = self.client.get(
             reverse('user_edit', args=[self.plain.pk])
@@ -136,13 +136,17 @@ class UsernameChangeTests(UserAdminTestBase):
         form = response.context['form']
         self.assertIn('username', form.fields)
         self.assertIn('email', form.fields)
-        self.assertIn('full_name', form.fields)
         self.assertNotIn('first_name', form.fields)
         self.assertNotIn('last_name', form.fields)
+        self.assertNotIn('full_name', form.fields)
+        self.assertNotIn('phone', form.fields)
+        self.assertNotIn('address', form.fields)
 
         self.assertNotContains(response, 'name="first_name"')
         self.assertNotContains(response, 'name="last_name"')
-        self.assertContains(response, 'name="full_name"', count=1)
+        self.assertNotContains(response, 'name="full_name"')
+        self.assertNotContains(response, 'name="phone"')
+        self.assertNotContains(response, 'name="address"')
 
     def test_staff_create_form_has_only_one_name_field(self):
         self.client.force_login(self.admin)
@@ -158,7 +162,12 @@ class UsernameChangeTests(UserAdminTestBase):
         self.assertNotContains(response, 'name="last_name"')
         self.assertContains(response, 'name="full_name"', count=1)
 
-    def test_editing_does_not_touch_legacy_name_fields(self):
+    def test_editing_does_not_touch_legacy_or_profile_names(self):
+        profile = self.plain.profile
+        profile.full_name = 'ชื่อเดิม ทดสอบ'
+        profile.phone = '0811111111'
+        profile.address = 'ที่อยู่เดิม'
+        profile.save()
         self.plain.first_name = 'Legacy'
         self.plain.last_name = 'Name'
         self.plain.save(update_fields=['first_name', 'last_name'])
@@ -171,9 +180,12 @@ class UsernameChangeTests(UserAdminTestBase):
         self.assertEqual(response.status_code, 302)
 
         self.plain.refresh_from_db()
+        profile.refresh_from_db()
         self.assertEqual(self.plain.first_name, 'Legacy')
         self.assertEqual(self.plain.last_name, 'Name')
-        self.assertEqual(self.plain.profile.full_name, 'ชื่อใหม่ ทดสอบ')
+        self.assertEqual(profile.full_name, 'ชื่อเดิม ทดสอบ')
+        self.assertEqual(profile.phone, '0811111111')
+        self.assertEqual(profile.address, 'ที่อยู่เดิม')
 
     def test_same_username_with_different_case_is_allowed(self):
         self.client.force_login(self.admin)

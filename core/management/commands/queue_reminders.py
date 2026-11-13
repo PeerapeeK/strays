@@ -8,6 +8,7 @@ from core.models import (
     AdoptionContract,
     FollowUp,
     HomeVisit,
+    InterviewRequest,
     Notification,
 )
 
@@ -15,7 +16,8 @@ from core.models import (
 class Command(BaseCommand):
     help = (
         'Mark overdue follow-ups and queue reminder notifications for upcoming '
-        'follow-ups and home visits. Dedupe keys prevent duplicate reminders.'
+        'interviews, follow-ups and home visits. Dedupe keys prevent duplicate '
+        'reminders.'
     )
 
     def add_arguments(self, parser):
@@ -32,14 +34,39 @@ class Command(BaseCommand):
         window_end = today + timedelta(days=days)
 
         overdue_count = self.mark_overdue(today)
+        interview_count = self.queue_interview_reminders(days)
         followup_count = self.queue_follow_up_reminders(today, window_end)
         home_visit_count = self.queue_home_visit_reminders(days)
 
         self.stdout.write(
-            f'Reminders queued: {followup_count} follow-up, '
-            f'{home_visit_count} home visit; {overdue_count} follow-up(s) '
-            'marked overdue.'
+            f'Reminders queued: {interview_count} interview, '
+            f'{followup_count} follow-up, {home_visit_count} home visit; '
+            f'{overdue_count} follow-up(s) marked overdue.'
         )
+
+    def queue_interview_reminders(self, days):
+        now = timezone.now()
+        window_end = now + timedelta(days=days)
+        interviews = InterviewRequest.objects.filter(
+            status__in=InterviewRequest.ACTIVE_STATUSES,
+            scheduled_at__gte=now,
+            scheduled_at__lte=window_end,
+        ).select_related('adopter', 'dog')
+
+        count = 0
+        for interview in interviews:
+            scheduled = timezone.localtime(interview.scheduled_at)
+            if self._queue(
+                interview.adopter,
+                'แจ้งเตือนการนัดสัมภาษณ์',
+                f'นัดสัมภาษณ์รหัส {interview.code} สำหรับสุนัข '
+                f'{interview.dog.name} ในวันที่ '
+                f'{scheduled:%d/%m/%Y %H:%M} กรุณาเตรียมตัวและมาตรงเวลา',
+                f'interview-reminder-{interview.pk}-'
+                f'{interview.scheduled_at.isoformat()}',
+            ):
+                count += 1
+        return count
 
     def mark_overdue(self, today):
         overdue = FollowUp.objects.filter(

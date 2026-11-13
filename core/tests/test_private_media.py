@@ -156,11 +156,18 @@ class PrivateMediaTests(TestCase):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
-    def test_admin_can_open_every_private_file(self):
+    def test_admin_can_open_profile_but_not_adoption_evidence(self):
         self.client.force_login(self.admin)
+        profile_url = reverse(
+            'protected_file', args=['profile', self.owner.profile.pk]
+        )
+        self.assertEqual(self.client.get(profile_url).status_code, 200)
+
         for url in self.private_urls():
+            if url == profile_url:
+                continue
             with self.subTest(url=url):
-                self.assertEqual(self.client.get(url).status_code, 200)
+                self.assertEqual(self.client.get(url).status_code, 403)
 
     def test_unknown_kind_returns_404(self):
         self.client.force_login(self.staff)
